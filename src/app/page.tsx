@@ -11,10 +11,12 @@ import MapSection from "./components/MapSection";
 import NavigationBar from "./components/NavigationBar";
 import PinnedPointsOperationBar from "./components/PinnedPointsOperationBar";
 import "leaflet-arrowheads";
+import Group from "./types/Group";
 
 
 const Home: React.FC = () => {
   const [pinnedPoints, setPinnedPoints] = useState<PinnedPoint[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [draggingPoint, setDraggingPoint] = useState<LatLng | null>(null); // tmp point to display grey pinpoint
   const [currentFile, setCurrentFile] = useState<string>("New Route");
   const [fileList, setFileList] = useState<string[]>(["New Route"]);
@@ -135,6 +137,10 @@ const Home: React.FC = () => {
 
   const handlePointsReorder = (newPoints: PinnedPoint[]) => {
     setPinnedPoints(newPoints);
+  };
+
+  const handleGroupsUpdate = (newGroups: Group[]) => {
+    setGroups(newGroups);
   };
 
   const handleFileEditStart = () => {
@@ -304,10 +310,12 @@ const Home: React.FC = () => {
             ) : (
               <PinnedPointsList
                 points={pinnedPoints}
+                groups={groups}
                 onPointSelect={handlePointSelect}
                 onPointRemove={handlePointRemove}
                 onPointUpdate={handlePointUpdate}
                 onPointsReorder={handlePointsReorder}
+                onGroupsUpdate={handleGroupsUpdate}
               />
             )}
           </div>

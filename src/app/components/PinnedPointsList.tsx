@@ -7,13 +7,16 @@ import { CSS } from '@dnd-kit/utilities';
 import React, { useState } from 'react';
 import PinnedPoint from '../types/PinnedPoint';
 import SortableItemProps from '../types/SortableItem';
+import Group from '../types/Group';
 
 interface PinnedPointsListProps {
   points: PinnedPoint[];
+  groups: Group[];
   onPointSelect: (point: PinnedPoint) => void;
   onPointRemove: (point: PinnedPoint) => void;
   onPointUpdate: (updatedPoint: PinnedPoint) => void;
   onPointsReorder: (updatedPoints: PinnedPoint[]) => void;
+  onGroupsUpdate: (updatedGroups: Group[]) => void;
 }
 
 // Define EditableField without null
@@ -50,10 +53,12 @@ const SortableItem: React.FC<SortableItemProps> = ({ point, className, children 
 
 const PinnedPointsList: React.FC<PinnedPointsListProps> = ({
   points,
+  groups,
   onPointSelect,
   onPointRemove,
   onPointUpdate,
   onPointsReorder,
+  onGroupsUpdate,
 }) => {
   // Initialize editing state
   const [editing, setEditing] = useState<EditingState>({
