@@ -1,101 +1,320 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useEffect, useState } from "react";
+import "tailwindcss/tailwind.css";
+import { LatLng, LeafletMouseEvent } from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { v4 as uuidv4 } from 'uuid';
+import PinnedPoint from "./types/PinnedPoint";
+import PinnedPointsList from './components/PinnedPointsList';
+import MapSection from "./components/MapSection";
+import NavigationBar from "./components/NavigationBar";
+import PinnedPointsOperationBar from "./components/PinnedPointsOperationBar";
+import "leaflet-arrowheads";
+
+
+const Home: React.FC = () => {
+  const [pinnedPoints, setPinnedPoints] = useState<PinnedPoint[]>([]);
+  const [draggingPoint, setDraggingPoint] = useState<LatLng | null>(null); // tmp point to display grey pinpoint
+  const [currentFile, setCurrentFile] = useState<string>("New Route");
+  const [fileList, setFileList] = useState<string[]>(["New Route"]);
+  const [isViewOnly, setIsViewOnly] = useState<boolean>(false); // default allow to edit
+  const [isEditingFileName, setIsEditingFileName] = useState<boolean>(false);
+  const [tempFileName, setTempFileName] = useState<string>("");
+  const [isPending, setIsPending] = useState<boolean>(false); 
+
+  // Handle map click events
+  const handleMapClick = (event: LeafletMouseEvent) => {
+    if (isViewOnly) return;
+
+    const { lat, lng } = event.latlng;
+    const newPoint: PinnedPoint = {
+      id: uuidv4(),
+      name: `Point ${pinnedPoints.length + 1}`,
+      latitude: lat,
+      longitude: lng,
+      height: 100,
+    };
+    setPinnedPoints([...pinnedPoints, newPoint]);
+  };
+
+  const handleDragStart = (position: LatLng) => {
+    setDraggingPoint(position); // set tmp point for grey point
+  };
+
+  const handleDragEnd = (id: string, position: LatLng) => {
+    setDraggingPoint(null); // remove tmp point for grey point
+
+    if (isViewOnly) return;
+    const updatedPoints = pinnedPoints.map((point) =>
+      point.id === id
+        ? {
+            ...point,
+            latitude: position.lat,
+            longitude: position.lng,
+          }
+        : point
+    );
+    setPinnedPoints(updatedPoints);
+  };
+
+  const handleDownloadJson = () => {
+    const fileData = JSON.stringify(pinnedPoints, null, 2); // make JSON format
+    const blob = new Blob([fileData], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+  
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "pinned_points.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
+  const handleUploadJson = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+  
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        setPinnedPoints(data);
+      } catch (err) {
+        alert("Invalid JSON file");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // init map routes (json file) folder
+  useEffect(() => {
+    const fetchFiles = async () => {
+      const response = await fetch("/api/files");
+      if (response.ok) {
+        const files = await response.json();
+        setFileList(["New Route", ...files]);
+      }
+    };
+    fetchFiles();
+  }, []);
+
+  // load json data from current selected file
+  const handleFileSelect = async (fileName: string) => {
+    setCurrentFile(fileName);
+    if (fileName === "New Route") {
+      setPinnedPoints([]);
+    } else {
+      const response = await fetch(`/api/files?fileName=${fileName}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPinnedPoints(data);
+      } else {
+        alert("Error loading file");
+      }
+    }
+  }; 
+
+  // call back functions
+  const handlePointSelect = (point: PinnedPoint) => {
+    // Handle point selection
+    console.log('Selected point:', point);
+  };
+
+  const handlePointRemove = (pointToRemove: PinnedPoint) => {
+    setPinnedPoints((prevPoints) =>
+      prevPoints.filter((point) => point !== pointToRemove)
+    );
+  };
+
+  const handlePointUpdate = (updatedPoint: PinnedPoint) => {
+    setPinnedPoints((prevPoints) =>
+      prevPoints.map((point) => (point.id === updatedPoint.id ? updatedPoint : point))
+    );
+  };
+
+  const handlePointsReorder = (newPoints: PinnedPoint[]) => {
+    setPinnedPoints(newPoints);
+  };
+
+  const handleFileEditStart = () => {
+    setIsEditingFileName(true);
+    setTempFileName(currentFile.replace(/\.json$/, ""));
+  };
+
+  const handleFileEditFinish = async (newName: string) => {
+    setIsEditingFileName(false);
+    newName = newName.trim();
+    if (!newName) return;
+
+    if (currentFile === "New Route") {
+      const response = await fetch("/api/files/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          oldName: currentFile,
+          newName: newName + ".json",
+          isPending: true
+        })
+      });
+
+      if (response.ok) {
+        const newFileFullName = newName + ".json";
+        setCurrentFile(newFileFullName);
+        setTempFileName(newName);
+        setIsPending(true);
+
+        setFileList((prev) => {
+          const withoutNewRoute = prev.filter((f) => f !== "New Route");
+          return [newFileFullName, ...withoutNewRoute];
+        });
+
+      } else {
+        alert("Error in pending rename.");
+      }
+    } else {
+      const oldName = currentFile;
+      const newFileName = newName + ".json";
+
+      if (newFileName === oldName) return;
+
+      const response = await fetch("/api/files/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          oldName,
+          newName: newFileName,
+          isPending: false
+        })
+      });
+
+      if (response.ok) {
+        setFileList((prev) => {
+          const index = prev.indexOf(oldName);
+          if (index > -1) {
+            const newList = [...prev];
+            newList[index] = newFileName;
+            return newList;
+          }
+          return prev;
+        });
+        setCurrentFile(newFileName);
+      } else {
+        alert("Error renaming file");
+      }
+    }
+  };
+
+  const generateDefaultFileName = () => {
+    const defaultPrefix = "New Route";
+    let highestIndex = 0;
+    fileList.forEach((file) => {
+      const baseName = file.replace(/\.json$/, "");
+      const match = baseName.match(new RegExp(`^${defaultPrefix} (\\d+)$`));
+      if (match) {
+        const index = parseInt(match[1], 10);
+        if (index > highestIndex) {
+          highestIndex = index;
+        }
+      }
+    });
+    return `${defaultPrefix} ${highestIndex + 1}`;
+  };
+
+  const handleSave = async () => {
+    let oldFileName = currentFile;
+    let fileName = "";
+    if (oldFileName === "New Route") {
+      fileName = generateDefaultFileName() + ".json";
+    } else if (isPending) {
+      fileName = tempFileName.trim() !== "" ? tempFileName + ".json" : fileName;
+    } else {
+      fileName = oldFileName;
+    }
+
+    const response = await fetch("/api/files", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName, data: pinnedPoints }),
+    });
+
+    if (response.ok) {
+      if (oldFileName === "New Route") {
+        setFileList((prev) => {
+          const withoutNewRoute = prev.filter((f) => f !== "New Route" && f !== fileName);
+          return ["New Route", ...withoutNewRoute, fileName];
+        });
+
+        setCurrentFile(fileName);
+      } else if (isPending) {
+        setFileList((prev) => {
+          const withoutNewRoute = prev.filter((f) => f !== "New Route" && f !== fileName);
+          return ["New Route", ...withoutNewRoute, fileName];
+        });
+
+        setCurrentFile(fileName);
+        setIsPending(false);
+      }
+    } else {
+      alert("Error saving file");
+    }
+  };
+
+  const toggleViewOnly = () => {
+    setIsViewOnly((prev) => !prev);
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="flex flex-col h-screen">
+      {/* Top navigation bar */}
+      <NavigationBar
+        onDownloadJson={handleDownloadJson}
+        onUploadJson={handleUploadJson}
+        isViewOnly={isViewOnly}
+        toggleViewOnly={toggleViewOnly}
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left section: Map */}
+        <MapSection
+          pinnedPoints={pinnedPoints}
+          draggingPoint={draggingPoint}
+          isViewOnly={isViewOnly}
+          onMapClick={handleMapClick}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        />
+
+        {/* Right section: Points list */}
+        <div className="w-1/3 h-full bg-gray-100 p-4 flex flex-col">
+          {/* Dropdown menu and save button */}
+          <PinnedPointsOperationBar
+            isEditingFileName={isEditingFileName}
+            currentFile={currentFile}
+            fileList={fileList}
+            handleFileSelect={handleFileSelect}
+            handleFileEditStart={handleFileEditStart}
+            handleFileEditFinish={handleFileEditFinish}
+            handleSave={handleSave}
+          />
+          {/* Pin points list */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {pinnedPoints.length === 0 ? (
+              <p>No points pinned yet.</p>
+            ) : (
+              <PinnedPointsList
+                points={pinnedPoints}
+                onPointSelect={handlePointSelect}
+                onPointRemove={handlePointRemove}
+                onPointUpdate={handlePointUpdate}
+                onPointsReorder={handlePointsReorder}
+              />
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
-}
+};
+
+export default Home;
