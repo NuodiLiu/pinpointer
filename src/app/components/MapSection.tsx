@@ -7,9 +7,11 @@ import "leaflet/dist/leaflet.css";
 import { mapPinIcon, mapPinIconGrey } from "../components/MapMarker";
 import PinnedPoint from "../types/PinnedPoint";
 import PathWithArrow from "../components/PathWithArrow";
+import Group from "../types/Group";
 
 interface MapSectionProps {
   pinnedPoints: PinnedPoint[];
+  groups: Group[];
   draggingPoint: LatLng | null;
   isViewOnly: boolean;
   onMapClick: (event: LeafletMouseEvent) => void;
@@ -28,12 +30,22 @@ const MapWithEvents: React.FC<{ onMapClick: (event: LeafletMouseEvent) => void }
 
 const MapSection: React.FC<MapSectionProps> = ({
   pinnedPoints,
+  groups,
   draggingPoint,
   isViewOnly,
   onMapClick,
   onDragStart,
   onDragEnd,
 }) => {
+  const getPointIcon = (point: PinnedPoint) => {
+    const pointGroups = groups.filter((group) =>
+      group.pinnedPoints.some((p) => p.id === point.id)
+    );
+
+    const isVisible = pointGroups.some((group) => group.isVisible);
+    return isVisible ? mapPinIcon : mapPinIconGrey;
+  };
+  
   return (
     <div className="w-2/3 h-full">
       <MapContainer
@@ -46,7 +58,6 @@ const MapSection: React.FC<MapSectionProps> = ({
           attribution="&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
         />
 
-        {/* 注意这里使用传进来的onMapClick */}
         <MapWithEvents onMapClick={onMapClick} />
 
         {/* Render Pin Points */}
@@ -54,19 +65,17 @@ const MapSection: React.FC<MapSectionProps> = ({
           <Marker
             key={point.id}
             position={[point.latitude, point.longitude]}
-            icon={mapPinIcon}
+            icon={getPointIcon(point)}
             draggable={!isViewOnly}
             eventHandlers={{
               dragstart: (e) => {
                 const marker = e.target;
                 const position = marker.getLatLng();
-                // 调用传入的onDragStart，而不是handleDragStart
                 onDragStart(position);
               },
               dragend: (e) => {
                 const marker = e.target;
                 const position = marker.getLatLng();
-                // 调用传入的onDragEnd，而不是handleDragEnd
                 onDragEnd(point.id, position);
               },
             }}

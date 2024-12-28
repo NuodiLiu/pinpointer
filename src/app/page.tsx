@@ -12,11 +12,20 @@ import NavigationBar from "./components/NavigationBar";
 import PinnedPointsOperationBar from "./components/PinnedPointsOperationBar";
 import "leaflet-arrowheads";
 import Group from "./types/Group";
+import ManageGroupsModal from "./components/ManageGroupsModal";
 
 
 const Home: React.FC = () => {
   const [pinnedPoints, setPinnedPoints] = useState<PinnedPoint[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [groups, setGroups] = useState<Group[]>([
+    {
+      id: "Ungrouped points",
+      name: "Ungrouped points",
+      color: "#ffffff",
+      pinnedPoints: [],
+      isVisible: true,
+    },
+  ]);
   const [draggingPoint, setDraggingPoint] = useState<LatLng | null>(null); // tmp point to display grey pinpoint
   const [currentFile, setCurrentFile] = useState<string>("New Route");
   const [fileList, setFileList] = useState<string[]>(["New Route"]);
@@ -24,6 +33,7 @@ const Home: React.FC = () => {
   const [isEditingFileName, setIsEditingFileName] = useState<boolean>(false);
   const [tempFileName, setTempFileName] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false); 
+  const [isManageGroupsModalOpen, setIsManageGroupsModalOpen] = useState(false);
 
   // Handle map click events
   const handleMapClick = (event: LeafletMouseEvent) => {
@@ -38,6 +48,18 @@ const Home: React.FC = () => {
       height: 100,
     };
     setPinnedPoints([...pinnedPoints, newPoint]);
+    
+    // Directly add the new point to the "Ungrouped points" group
+    setGroups((prevGroups) =>
+      prevGroups.map((group) =>
+        group.id === "Ungrouped points"
+          ? {
+              ...group,
+              pinnedPoints: [...group.pinnedPoints, newPoint],
+            }
+          : group
+      )
+    );
   };
 
   const handleDragStart = (position: LatLng) => {
@@ -61,13 +83,22 @@ const Home: React.FC = () => {
   };
 
   const handleDownloadJson = () => {
-    const fileData = JSON.stringify(pinnedPoints, null, 2); // make JSON format
+    // Create a combined data object
+    const fileData = JSON.stringify(
+      {
+        pinnedPoints,
+        groups,
+      },
+      null,
+      2 // Indent JSON for readability
+    );
+    
     const blob = new Blob([fileData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
   
     const link = document.createElement("a");
     link.href = url;
-    link.download = "pinned_points.json";
+    link.download = "data.json"; // Updated filename to reflect the combined data
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -81,13 +112,21 @@ const Home: React.FC = () => {
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target?.result as string);
-        setPinnedPoints(data);
+  
+        // Validate JSON structure
+        if (Array.isArray(data.pinnedPoints) && Array.isArray(data.groups)) {
+          setPinnedPoints(data.pinnedPoints);
+          setGroups(data.groups);
+        } else {
+          alert("Invalid JSON file structure");
+        }
       } catch (err) {
         alert("Invalid JSON file");
       }
     };
     reader.readAsText(file);
   };
+  
 
   // init map routes (json file) folder
   useEffect(() => {
@@ -106,11 +145,13 @@ const Home: React.FC = () => {
     setCurrentFile(fileName);
     if (fileName === "New Route") {
       setPinnedPoints([]);
+      setGroups([]);
     } else {
       const response = await fetch(`/api/files?fileName=${fileName}`);
       if (response.ok) {
         const data = await response.json();
-        setPinnedPoints(data);
+        setPinnedPoints(data.pinnedPoints || []);
+        setGroups(data.groups || []);
       } else {
         alert("Error loading file");
       }
@@ -241,7 +282,7 @@ const Home: React.FC = () => {
     const response = await fetch("/api/files", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName, data: pinnedPoints }),
+      body: JSON.stringify({ fileName, data: { pinnedPoints, groups } }),
     });
 
     if (response.ok) {
@@ -270,6 +311,14 @@ const Home: React.FC = () => {
     setIsViewOnly((prev) => !prev);
   };
 
+  const openManageGroupsModal = () => {
+    setIsManageGroupsModalOpen(true);
+  };
+
+  const closeManageGroupsModal = () => {
+    setIsManageGroupsModalOpen(false);
+  };
+
   return (
     <div className="flex flex-col h-screen">
       {/* Top navigation bar */}
@@ -279,46 +328,58 @@ const Home: React.FC = () => {
         isViewOnly={isViewOnly}
         toggleViewOnly={toggleViewOnly}
       />
-
+  
       <div className="flex flex-1 overflow-hidden">
         {/* Left section: Map */}
         <MapSection
           pinnedPoints={pinnedPoints}
+          groups={groups}
           draggingPoint={draggingPoint}
           isViewOnly={isViewOnly}
           onMapClick={handleMapClick}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         />
-
-        {/* Right section: Points list */}
-        <div className="w-1/3 h-full bg-gray-100 p-4 flex flex-col">
-          {/* Dropdown menu and save button */}
-          <PinnedPointsOperationBar
-            isEditingFileName={isEditingFileName}
-            currentFile={currentFile}
-            fileList={fileList}
-            handleFileSelect={handleFileSelect}
-            handleFileEditStart={handleFileEditStart}
-            handleFileEditFinish={handleFileEditFinish}
-            handleSave={handleSave}
-          />
-          {/* Pin points list */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            {pinnedPoints.length === 0 ? (
-              <p>No points pinned yet.</p>
-            ) : (
-              <PinnedPointsList
-                points={pinnedPoints}
-                groups={groups}
-                onPointSelect={handlePointSelect}
-                onPointRemove={handlePointRemove}
-                onPointUpdate={handlePointUpdate}
-                onPointsReorder={handlePointsReorder}
-                onGroupsUpdate={handleGroupsUpdate}
+  
+        {/* Right section */}
+        <div className="w-1/3 h-full bg-gray-100 flex flex-col relative">
+          {isManageGroupsModalOpen ? (
+            <ManageGroupsModal
+              groups={groups}
+              setGroups={setGroups}
+              pinnedPoints={pinnedPoints}
+              setPinnedPoints={setPinnedPoints}
+              onClose={closeManageGroupsModal}
+            />
+          ) : (
+            <div className="p-4 flex flex-col h-full">
+              {/* Operation bar */}
+              <PinnedPointsOperationBar
+                isEditingFileName={isEditingFileName}
+                currentFile={currentFile}
+                fileList={fileList}
+                handleFileSelect={handleFileSelect}
+                handleFileEditStart={handleFileEditStart}
+                handleFileEditFinish={handleFileEditFinish}
+                handleSave={handleSave}
+                openManageGroupsModal={openManageGroupsModal}
               />
-            )}
-          </div>
+              {/* Points list */}
+              <div className="flex-1 overflow-y-auto min-h-0">
+                {pinnedPoints.length === 0 ? (
+                  <p>No points pinned yet.</p>
+                ) : (
+                  <PinnedPointsList
+                    points={pinnedPoints}
+                    onPointSelect={handlePointSelect}
+                    onPointRemove={handlePointRemove}
+                    onPointUpdate={handlePointUpdate}
+                    onPointsReorder={handlePointsReorder}
+                  />
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
