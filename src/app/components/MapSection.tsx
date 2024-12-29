@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { LatLng, LeafletMouseEvent } from "leaflet";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { LatLng, LatLngTuple, LeafletMouseEvent } from "leaflet";
+import { MapContainer, TileLayer, Marker, Polygon, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { mapPinIcon, mapPinIconGrey } from "../components/MapMarker";
+import { mapPinIcon, mapPinIconGrey, mapPinIconGreyHighlighted, mapPinIconHighlighted } from "../components/MapMarker";
 import PinnedPoint from "../types/PinnedPoint";
 import PathWithArrow from "../components/PathWithArrow";
 import Group from "../types/Group";
@@ -14,6 +14,7 @@ interface MapSectionProps {
   groups: Group[];
   draggingPoint: LatLng | null;
   isViewOnly: boolean;
+  displayNoFlyZone: boolean;
   onMapClick: (event: LeafletMouseEvent) => void;
   onDragStart: (position: LatLng) => void;
   onDragEnd: (id: string, position: LatLng) => void;
@@ -27,12 +28,36 @@ const MapWithEvents: React.FC<{ onMapClick: (event: LeafletMouseEvent) => void }
   return null;
 };
 
+const noFlyZones = [
+  {
+    name: "Forbidden 1",
+    coordinates: [
+      [-33.865143, 151.2099],
+      [-33.863224, 151.2069],
+      [-33.866244, 151.2049],
+      [-33.868122, 151.2089],
+      [-33.868132, 151.2094],
+      [-33.865143, 151.2099],
+    ],
+  },
+  {
+    name: "Forbidden 2",
+    coordinates: [
+      [-33.870000, 151.2150],
+      [-33.868000, 151.2120],
+      [-33.871000, 151.2100],
+      [-33.873000, 151.2130],
+      [-33.870000, 151.2150],
+    ],
+  },
+];
 
 const MapSection: React.FC<MapSectionProps> = ({
   pinnedPoints,
   groups,
   draggingPoint,
   isViewOnly,
+  displayNoFlyZone,
   onMapClick,
   onDragStart,
   onDragEnd,
@@ -41,10 +66,25 @@ const MapSection: React.FC<MapSectionProps> = ({
     const pointGroups = groups.filter((group) =>
       group.pinnedPoints.some((p) => p.id === point.id)
     );
-
+  
+    const isSelected = pointGroups.some((group) => group.isSelected);
     const isVisible = pointGroups.some((group) => group.isVisible);
-    return isVisible ? mapPinIcon : mapPinIconGrey;
+  
+    if (isVisible && isSelected) {
+      return mapPinIconHighlighted; // Red highlighted
+    }
+  
+    if (!isVisible && isSelected) {
+      return mapPinIconGreyHighlighted; // Grey highlighted
+    }
+  
+    if (isVisible && !isSelected) {
+      return mapPinIcon; // Red
+    }
+  
+    return mapPinIconGrey; // Grey
   };
+  
   
   return (
     <div className="w-2/3 h-full">
@@ -89,7 +129,20 @@ const MapSection: React.FC<MapSectionProps> = ({
           </Marker>
         ))}
 
+        {/* Render path with arrows */}
         <PathWithArrow points={pinnedPoints} />
+
+        {/* Render no-fly zones */}
+        {displayNoFlyZone && noFlyZones.map((zone, index) => (
+          <Polygon
+            key={index}
+            positions={zone.coordinates as LatLngTuple[]}
+            pathOptions={{ color: "red", fillColor: "red", fillOpacity: 0.5 }}
+            eventHandlers={{
+              click: () => alert(`这是 ${zone.name}`),
+            }}
+          />
+        ))}
       </MapContainer>
     </div>
   );

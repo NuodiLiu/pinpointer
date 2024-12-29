@@ -23,6 +23,8 @@ const ManageGroupsModal: React.FC<ManageGroupsModalProps> = ({
   const [selectedGroupIndex, setSelectedGroupIndex] = useState<number | null>(null);
   const [selectedPoints, setSelectedPoints] = useState<Set<string>>(new Set());
   const [shouldSyncUngrouped, setShouldSyncUngrouped] = useState(false);
+  const [editingGroupIndex, setEditingGroupIndex] = useState<number | null>(null);
+  const [tempGroupName, setTempGroupName] = useState<string>("");
 
   const togglePointSelection = (pointId: string) => {
     setSelectedPoints((prev) => {
@@ -122,6 +124,7 @@ const ManageGroupsModal: React.FC<ManageGroupsModalProps> = ({
         color: "#ffffff",
         pinnedPoints: [],
         isVisible: true,
+        isSelected: false,
       },
     ]);
   };
@@ -150,6 +153,38 @@ const ManageGroupsModal: React.FC<ManageGroupsModalProps> = ({
     );
   };
 
+  const handleGroupNameEdit = (index: number, name: string) => {
+    setEditingGroupIndex(index);
+    setTempGroupName(name);
+  };
+
+  const handleGroupNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTempGroupName(e.target.value);
+  };
+
+  const handleGroupNameSave = (index: number) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group, i) =>
+        i === index ? { ...group, name: tempGroupName.trim() } : group
+      )
+    );
+    setEditingGroupIndex(null);
+  };
+
+  const handleGroupNameCancel = () => {
+    setEditingGroupIndex(null);
+    setTempGroupName("");
+  };
+  
+  const handleGroupSelect = (groupId: string) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => ({
+        ...group,
+        isSelected: group.id === groupId, // only select current clicked group
+      }))
+    );
+  };
+  
   return (
     <div className="flex flex-col h-full">
       <button
@@ -169,8 +204,36 @@ const ManageGroupsModal: React.FC<ManageGroupsModalProps> = ({
                   selectedGroupIndex === index ? "bg-gray-200" : "hover:bg-gray-100"
                 }`}
               >
-                <div onClick={() => setSelectedGroupIndex(index)} className="flex-1">
-                  <h3 className="font-medium text-gray-800">{group.name}</h3>
+                <div onClick={() => {
+                    setSelectedGroupIndex(index)
+                    handleGroupSelect(group.id);
+                  }} 
+                  className="flex-1"
+                >
+                  {editingGroupIndex === index ? (
+                    <input
+                      type="text"
+                      value={tempGroupName}
+                      onChange={handleGroupNameChange}
+                      onBlur={() => handleGroupNameSave(index)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleGroupNameSave(index);
+                        if (e.key === "Escape") handleGroupNameCancel();
+                      }}
+                      autoFocus
+                      className="border p-1 rounded bg-gray-50 max-w-xs w-full"
+                    />
+                  ) : (
+                    <span
+                      className="font-medium text-gray-800 hover:underline cursor-pointer w-auto inline-block"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleGroupNameEdit(index, group.name);
+                      }}
+                    >
+                      {group.name}
+                    </span>
+                  )}
                   <p className="text-sm text-gray-500">{group.pinnedPoints.length} pinned points</p>
                 </div>
                 <div
@@ -194,9 +257,6 @@ const ManageGroupsModal: React.FC<ManageGroupsModalProps> = ({
           <h2 className="text-lg font-bold mb-4">Pinned Points</h2>
           {selectedGroupIndex !== null ? (
             <div className="flex flex-col">
-              <h2 className="text-lg font-bold mb-4">
-                {groups[selectedGroupIndex].name} Details
-              </h2>
               <ul>
                 {groups[selectedGroupIndex].pinnedPoints.map((point, i) => (
                   <li key={i} className="text-gray-700">
@@ -238,14 +298,14 @@ const ManageGroupsModal: React.FC<ManageGroupsModalProps> = ({
             onClick={addGroupMember}
             disabled={selectedGroupIndex === null || selectedPoints.size === 0}
           >
-            Add Members
+            Add
           </button>
           <button
             className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
             onClick={removeGroupMember}
             disabled={selectedGroupIndex === null || selectedPoints.size === 0}
           >
-            Remove Members
+            Remove
           </button>
         </div>
       </div>

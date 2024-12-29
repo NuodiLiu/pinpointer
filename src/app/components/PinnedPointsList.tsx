@@ -1,10 +1,10 @@
 // PinnedPointsList.jsx
-import { DndContext, closestCenter } from '@dnd-kit/core';
+import { DndContext, UniqueIdentifier, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import PinnedPoint from '../types/PinnedPoint';
 import SortableItemProps from '../types/SortableItem';
 
@@ -26,7 +26,7 @@ interface EditingState {
   value: string;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ point, className, children }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ point, className, onPointSelect, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: point.id,
   });
@@ -42,7 +42,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ point, className, children 
   }
 
   return (
-    <li ref={setNodeRef} style={style} {...attributes} {...listeners} className={className}>
+    <li ref={setNodeRef} style={style} {...attributes} {...listeners} className={className} onClick={() => onPointSelect(point)}>
       {children}
     </li>
   )
@@ -62,6 +62,45 @@ const PinnedPointsList: React.FC<PinnedPointsListProps> = ({
     value: '',
   });
 
+  const dragStartPosition = useRef<{ x: number; y: number } | null>(null);
+
+  const handleDragStart = ({ active }: { active: { id: UniqueIdentifier } }) => {
+    const element = document.getElementById(active.id.toString()); // Convert to string for DOM access
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      dragStartPosition.current = { x: rect.left, y: rect.top };
+    }
+  };
+  
+  const handleDragEnd = ({
+    active,
+    over,
+  }: {
+    active: { id: UniqueIdentifier };
+    over: { id: UniqueIdentifier } | null;
+  }) => {
+    if (!over || active.id !== over.id) {
+      handleReorder(active.id.toString(), over?.id.toString() || ''); // Convert IDs to strings
+    }
+  
+    const element = document.getElementById(active.id.toString());
+    if (element && dragStartPosition.current) {
+      const rect = element.getBoundingClientRect();
+      const distanceX = Math.abs(rect.left - dragStartPosition.current.x);
+      const distanceY = Math.abs(rect.top - dragStartPosition.current.y);
+  
+      if (distanceX < 5 && distanceY < 5) {
+        const point = points.find((p) => p.id === active.id.toString());
+        if (point) {
+          onPointSelect(point);
+        }
+      }
+    }
+  
+    dragStartPosition.current = null;
+  };
+
+  
   // Handle clicking on a field to start editing
   const handleFieldClick = (point: PinnedPoint, field: EditableField) => {
     let value: string;
@@ -181,17 +220,14 @@ const PinnedPointsList: React.FC<PinnedPointsListProps> = ({
   return (
     <DndContext
       collisionDetection={closestCenter}
-      onDragEnd={({ active, over }) => {
-        if (active.id !== over?.id) {
-          handleReorder(active.id as string, over?.id as string);
-        }
-      }}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       modifiers={[restrictToVerticalAxis]}
     >
       <SortableContext items={points} strategy={verticalListSortingStrategy}>
         <ul>
           {points.map((point) => (
-            <SortableItem key={point.id} point={point} className="mb-4 p-4 bg-white shadow-md rounded relative">
+            <SortableItem key={point.id} point={point} className="mb-4 p-4 bg-white shadow-md rounded relative" onPointSelect={onPointSelect}>
               {/* Action Buttons */}
               <div className="absolute flex space-x-2 top-3 right-3">
                 <button

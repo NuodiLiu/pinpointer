@@ -7,6 +7,8 @@ interface NavigationBarProps {
   onUploadJson: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isViewOnly: boolean;
   toggleViewOnly: () => void;
+  displayNoFlyZone: boolean;
+  toggleDisplayNoFlyZone: () => void;
 }
 
 const NavigationBar: React.FC<NavigationBarProps> = ({
@@ -14,6 +16,8 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   onUploadJson,
   isViewOnly,
   toggleViewOnly,
+  displayNoFlyZone,
+  toggleDisplayNoFlyZone
 }) => {
   return (
     <div className="h-12 bg-white-500 flex items-center px-4 text-white font-bold justify-between border border-gray-300">
@@ -39,6 +43,17 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
             className="hidden"
             aria-label="Upload JSON"
           />
+        </label>
+
+        <label className="flex items-center space-x-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={displayNoFlyZone}
+            onChange={toggleDisplayNoFlyZone} // Manage the state
+            className="cursor-pointer rounded focus:ring-2 focus:ring-gray-400"
+            aria-label="Toggle Checkbox"
+          />
+          <span className="text-gray-700">No-Fly Zones</span>
         </label>
       </div>
 

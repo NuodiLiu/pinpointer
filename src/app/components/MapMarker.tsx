@@ -15,3 +15,16 @@ export const mapPinIconGrey = new L.Icon({
   popupAnchor: [0, -32], // Position of the popup relative to the icon
 });
 
+export const mapPinIconHighlighted = new L.Icon({
+  iconUrl: "/images/map_pin.png", // Path to your custom map pin
+  iconSize: [40, 40], // Adjust the size of the icon
+  iconAnchor: [16, 32], // Anchor the icon (center bottom of the image)
+  popupAnchor: [0, -32], // Position of the popup relative to the icon
+});
+
+export const mapPinIconGreyHighlighted = new L.Icon({
+  iconUrl: "/images/map_pin_grey.png", // Path to your custom map pin
+  iconSize: [40, 40], // Adjust the size of the icon
+  iconAnchor: [16, 32], // Anchor the icon (center bottom of the image)
+  popupAnchor: [0, -32], // Position of the popup relative to the icon
+});

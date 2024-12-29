@@ -6,6 +6,7 @@ type Group = {
   color: string,
   pinnedPoints: PinnedPoint[],
   isVisible: boolean,
+  isSelected: boolean,
 };
 
 export default Group;

@@ -24,6 +24,7 @@ const Home: React.FC = () => {
       color: "#ffffff",
       pinnedPoints: [],
       isVisible: true,
+      isSelected: false,
     },
   ]);
   const [draggingPoint, setDraggingPoint] = useState<LatLng | null>(null); // tmp point to display grey pinpoint
@@ -34,6 +35,8 @@ const Home: React.FC = () => {
   const [tempFileName, setTempFileName] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false); 
   const [isManageGroupsModalOpen, setIsManageGroupsModalOpen] = useState(false);
+  const [displayNoFlyZone, setDisplayNoFlyZone] = useState(true); // default display no fly zone
+
 
   // Handle map click events
   const handleMapClick = (event: LeafletMouseEvent) => {
@@ -48,7 +51,7 @@ const Home: React.FC = () => {
       height: 100,
     };
     setPinnedPoints([...pinnedPoints, newPoint]);
-    
+
     // Directly add the new point to the "Ungrouped points" group
     setGroups((prevGroups) =>
       prevGroups.map((group) =>
@@ -311,6 +314,10 @@ const Home: React.FC = () => {
     setIsViewOnly((prev) => !prev);
   };
 
+  const toggleDisplayNoFlyZone = () => {
+    setDisplayNoFlyZone((prev) => !prev);
+  };
+
   const openManageGroupsModal = () => {
     setIsManageGroupsModalOpen(true);
   };
@@ -327,6 +334,8 @@ const Home: React.FC = () => {
         onUploadJson={handleUploadJson}
         isViewOnly={isViewOnly}
         toggleViewOnly={toggleViewOnly}
+        displayNoFlyZone={displayNoFlyZone}
+        toggleDisplayNoFlyZone={toggleDisplayNoFlyZone}
       />
   
       <div className="flex flex-1 overflow-hidden">
@@ -336,6 +345,7 @@ const Home: React.FC = () => {
           groups={groups}
           draggingPoint={draggingPoint}
           isViewOnly={isViewOnly}
+          displayNoFlyZone={displayNoFlyZone}
           onMapClick={handleMapClick}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
