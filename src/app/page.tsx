@@ -17,16 +17,15 @@ import ManageGroupsModal from "./components/ManageGroupsModal";
 
 const Home: React.FC = () => {
   const [pinnedPoints, setPinnedPoints] = useState<PinnedPoint[]>([]);
-  const [groups, setGroups] = useState<Group[]>([
-    {
-      id: "Ungrouped points",
-      name: "Ungrouped points",
-      color: "#ffffff",
-      pinnedPoints: [],
-      isVisible: true,
-      isSelected: false,
-    },
-  ]);
+  const DEFAULT_GROUP = {
+    id: "Ungrouped points",
+    name: "Ungrouped points",
+    color: "#ffffff",
+    pinnedPoints: [],
+    isVisible: true,
+    isSelected: false,
+  };
+  const [groups, setGroups] = useState<Group[]>([DEFAULT_GROUP]);
   const [draggingPoint, setDraggingPoint] = useState<LatLng | null>(null); // tmp point to display grey pinpoint
   const [currentFile, setCurrentFile] = useState<string>("New Route");
   const [fileList, setFileList] = useState<string[]>(["New Route"]);
@@ -37,6 +36,52 @@ const Home: React.FC = () => {
   const [isManageGroupsModalOpen, setIsManageGroupsModalOpen] = useState(false);
   const [displayNoFlyZone, setDisplayNoFlyZone] = useState(true); // default display no fly zone
 
+  const saveState = () => {
+    const state = {
+      pinnedPoints,
+      groups,
+      draggingPoint,
+      currentFile,
+      fileList,
+      isViewOnly,
+      isManageGroupsModalOpen,
+      displayNoFlyZone,
+    };
+    sessionStorage.setItem("mapState", JSON.stringify(state));
+  };
+  
+  useEffect(() => {
+    const loadState = () => {
+      const savedState = sessionStorage.getItem("mapState");
+      if (savedState) {
+        try {
+          const {
+            pinnedPoints,
+            groups,
+            draggingPoint,
+            currentFile,
+            fileList,
+            isViewOnly,
+            isManageGroupsModalOpen,
+            displayNoFlyZone,
+          } = JSON.parse(savedState);
+  
+          setPinnedPoints(pinnedPoints || []);
+          setGroups(groups || [DEFAULT_GROUP]);
+          setDraggingPoint(draggingPoint || null);
+          setCurrentFile(currentFile || "New Route");
+          setFileList(fileList || ["New Route"]);
+          setIsViewOnly(isViewOnly || false);
+          setIsManageGroupsModalOpen(isManageGroupsModalOpen || false);
+          setDisplayNoFlyZone(displayNoFlyZone || true);
+        } catch (error) {
+          console.error("Failed to parse saved state:", error);
+        }
+      }
+    };
+  
+    loadState();
+  }, []);
 
   // Handle map click events
   const handleMapClick = (event: LeafletMouseEvent) => {
@@ -272,6 +317,8 @@ const Home: React.FC = () => {
   };
 
   const handleSave = async () => {
+    saveState();
+
     let oldFileName = currentFile;
     let fileName = "";
     if (oldFileName === "New Route") {
@@ -353,15 +400,6 @@ const Home: React.FC = () => {
   
         {/* Right section */}
         <div className="w-1/3 h-full bg-gray-100 flex flex-col relative">
-          {isManageGroupsModalOpen ? (
-            <ManageGroupsModal
-              groups={groups}
-              setGroups={setGroups}
-              pinnedPoints={pinnedPoints}
-              setPinnedPoints={setPinnedPoints}
-              onClose={closeManageGroupsModal}
-            />
-          ) : (
             <div className="p-4 flex flex-col h-full">
               {/* Operation bar */}
               <PinnedPointsOperationBar
@@ -372,10 +410,8 @@ const Home: React.FC = () => {
                 handleFileEditStart={handleFileEditStart}
                 handleFileEditFinish={handleFileEditFinish}
                 handleSave={handleSave}
-                openManageGroupsModal={openManageGroupsModal}
               />
-              {/* Points list */}
-              <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="flex-[10] overflow-y-auto min-h-0 bg-gray-50 p-4">
                 {pinnedPoints.length === 0 ? (
                   <p>No points pinned yet.</p>
                 ) : (
@@ -388,8 +424,15 @@ const Home: React.FC = () => {
                   />
                 )}
               </div>
+
+              <div className="flex-[6] overflow-y-auto min-h-0 bg-white p-4 border-t border-gray-300">
+                <ManageGroupsModal
+                  groups={groups}
+                  setGroups={setGroups}
+                />
+              </div>
             </div>
-          )}
+
         </div>
       </div>
     </div>

@@ -10,7 +10,6 @@ interface PointsOperationBarProps {
   handleFileEditStart: () => void;
   handleFileEditFinish: (newName: string) => void;
   handleSave: () => void;
-  openManageGroupsModal: () => void;
 }
 
 const PinnedPointsOperationBar: React.FC<PointsOperationBarProps> = ({
@@ -21,8 +20,12 @@ const PinnedPointsOperationBar: React.FC<PointsOperationBarProps> = ({
   handleFileEditStart,
   handleFileEditFinish,
   handleSave,
-  openManageGroupsModal,
 }) => {
+  const handleNavigate = async () => {
+    handleSave();
+    window.location.href = '/settings';
+  }
+
   return (
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center space-x-3">
@@ -56,23 +59,24 @@ const PinnedPointsOperationBar: React.FC<PointsOperationBarProps> = ({
           {"\u270F\uFE0F"}
         </button>
       </div>
-
-      {/* Middle: Manage Groups Button */}
-      <button
-        className="bg-yellow-500 px-4 py-2 rounded text-white hover:bg-yellow-600"
-        onClick={openManageGroupsModal}
-        aria-label="Manage Groups"
-      >
-        Manage Groups
-      </button>
-
-      <button
-        className="bg-green-500 px-4 py-1 rounded text-white"
-        onClick={handleSave}
-        aria-label="Save"
-      >
-        Save
-      </button>
+      
+      <div className="flex items-center space-x-6">
+        <button
+          onClick={handleNavigate}
+          aria-label="Settings"
+          className="text-2xl"
+        >
+          {/** setting button */}
+          {"\u2699\uFE0F"} 
+        </button>
+        <button
+          className="bg-green-500 px-4 py-1 rounded text-white"
+          onClick={handleSave}
+          aria-label="Save"
+        >
+          Save
+        </button>
+      </div>
     </div>
   );
 };

@@ -139,7 +139,7 @@ const MapSection: React.FC<MapSectionProps> = ({
             positions={zone.coordinates as LatLngTuple[]}
             pathOptions={{ color: "red", fillColor: "red", fillOpacity: 0.5 }}
             eventHandlers={{
-              click: () => alert(`这是 ${zone.name}`),
+              click: () => alert(`${zone.name}`),
             }}
           />
         ))}
