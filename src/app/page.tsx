@@ -1,19 +1,24 @@
+// app/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import "tailwindcss/tailwind.css";
 import { LatLng, LeafletMouseEvent } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { v4 as uuidv4 } from 'uuid';
 import PinnedPoint from "./types/PinnedPoint";
 import PinnedPointsList from './components/PinnedPointsList';
-import MapSection from "./components/MapSection";
 import NavigationBar from "./components/NavigationBar";
 import PinnedPointsOperationBar from "./components/PinnedPointsOperationBar";
 import "leaflet-arrowheads";
 import Group from "./types/Group";
 import ManageGroupsModal from "./components/ManageGroupsModal";
+import Zone from "./types/Zone";
 
+const MapSection = dynamic(() => import("./components/MapSection"), {
+  ssr: false,
+});
 
 const Home: React.FC = () => {
   const [pinnedPoints, setPinnedPoints] = useState<PinnedPoint[]>([]);
@@ -26,6 +31,7 @@ const Home: React.FC = () => {
     isSelected: false,
   };
   const [groups, setGroups] = useState<Group[]>([DEFAULT_GROUP]);
+  const [zones, setZones] = useState<Zone[]>([]);
   const [draggingPoint, setDraggingPoint] = useState<LatLng | null>(null); // tmp point to display grey pinpoint
   const [currentFile, setCurrentFile] = useState<string>("New Route");
   const [fileList, setFileList] = useState<string[]>(["New Route"]);
@@ -40,6 +46,7 @@ const Home: React.FC = () => {
     const state = {
       pinnedPoints,
       groups,
+      zones,
       draggingPoint,
       currentFile,
       fileList,
@@ -49,7 +56,7 @@ const Home: React.FC = () => {
     };
     sessionStorage.setItem("mapState", JSON.stringify(state));
   };
-  
+
   useEffect(() => {
     const loadState = () => {
       const savedState = sessionStorage.getItem("mapState");
@@ -58,6 +65,7 @@ const Home: React.FC = () => {
           const {
             pinnedPoints,
             groups,
+            zones,
             draggingPoint,
             currentFile,
             fileList,
@@ -68,6 +76,7 @@ const Home: React.FC = () => {
   
           setPinnedPoints(pinnedPoints || []);
           setGroups(groups || [DEFAULT_GROUP]);
+          setZones(zones || []);
           setDraggingPoint(draggingPoint || null);
           setCurrentFile(currentFile || "New Route");
           setFileList(fileList || ["New Route"]);
@@ -81,6 +90,18 @@ const Home: React.FC = () => {
     };
   
     loadState();
+  }, []);
+
+  // init map routes (json file) folder
+  useEffect(() => {
+    const fetchFiles = async () => {
+      const response = await fetch("/api/files");
+      if (response.ok) {
+        const files = await response.json();
+        setFileList(["New Route", ...files]);
+      }
+    };
+    fetchFiles();
   }, []);
 
   // Handle map click events
@@ -174,32 +195,21 @@ const Home: React.FC = () => {
     };
     reader.readAsText(file);
   };
-  
-
-  // init map routes (json file) folder
-  useEffect(() => {
-    const fetchFiles = async () => {
-      const response = await fetch("/api/files");
-      if (response.ok) {
-        const files = await response.json();
-        setFileList(["New Route", ...files]);
-      }
-    };
-    fetchFiles();
-  }, []);
 
   // load json data from current selected file
   const handleFileSelect = async (fileName: string) => {
     setCurrentFile(fileName);
     if (fileName === "New Route") {
       setPinnedPoints([]);
-      setGroups([]);
+      setGroups([DEFAULT_GROUP]);
+      setZones([]);
     } else {
       const response = await fetch(`/api/files?fileName=${fileName}`);
       if (response.ok) {
         const data = await response.json();
         setPinnedPoints(data.pinnedPoints || []);
         setGroups(data.groups || []);
+        setZones(data.zones || []);
       } else {
         alert("Error loading file");
       }
@@ -226,10 +236,6 @@ const Home: React.FC = () => {
 
   const handlePointsReorder = (newPoints: PinnedPoint[]) => {
     setPinnedPoints(newPoints);
-  };
-
-  const handleGroupsUpdate = (newGroups: Group[]) => {
-    setGroups(newGroups);
   };
 
   const handleFileEditStart = () => {
@@ -332,7 +338,7 @@ const Home: React.FC = () => {
     const response = await fetch("/api/files", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName, data: { pinnedPoints, groups } }),
+      body: JSON.stringify({ fileName, data: { pinnedPoints, groups, zones } }),
     });
 
     if (response.ok) {
@@ -363,14 +369,6 @@ const Home: React.FC = () => {
 
   const toggleDisplayNoFlyZone = () => {
     setDisplayNoFlyZone((prev) => !prev);
-  };
-
-  const openManageGroupsModal = () => {
-    setIsManageGroupsModalOpen(true);
-  };
-
-  const closeManageGroupsModal = () => {
-    setIsManageGroupsModalOpen(false);
   };
 
   return (

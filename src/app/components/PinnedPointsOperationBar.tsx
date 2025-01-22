@@ -1,3 +1,4 @@
+//app/components/PinnedPointsOperationBar.tsx
 "use client";
 
 import React from "react";

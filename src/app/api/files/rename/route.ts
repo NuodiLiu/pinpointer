@@ -1,11 +1,10 @@
+// api/files/rename/route.ts
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-// 定义文件目录
 const FILES_DIR = path.resolve("./saved_routes");
 
-// 确保文件目录存在
 function ensureFilesDir() {
   if (!fs.existsSync(FILES_DIR)) {
     fs.mkdirSync(FILES_DIR, { recursive: true });

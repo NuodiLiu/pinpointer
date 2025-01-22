@@ -1,4 +1,6 @@
 // PinnedPointsList.jsx
+"use client"
+
 import { DndContext, UniqueIdentifier, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
