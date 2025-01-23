@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from 'next/navigation';  // 添加这行导入
 
 interface PointsOperationBarProps {
   isEditingFileName: boolean;
@@ -22,9 +23,12 @@ const PinnedPointsOperationBar: React.FC<PointsOperationBarProps> = ({
   handleFileEditFinish,
   handleSave,
 }) => {
+
+  const router = useRouter(); 
+  
   const handleNavigate = async () => {
     handleSave();
-    window.location.href = '/settings';
+    router.push('/settings');  // 使用 router.push 替代 window.location.href
   }
 
   return (

@@ -4,21 +4,33 @@
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "tailwindcss/tailwind.css";
-import { LatLng, LeafletMouseEvent } from "leaflet";
+// import { LatLng, LeafletMouseEvent } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { v4 as uuidv4 } from 'uuid';
 import PinnedPoint from "./types/PinnedPoint";
 import PinnedPointsList from './components/PinnedPointsList';
 import NavigationBar from "./components/NavigationBar";
 import PinnedPointsOperationBar from "./components/PinnedPointsOperationBar";
-import "leaflet-arrowheads";
+// import "leaflet-arrowheads";
 import Group from "./types/Group";
 import ManageGroupsModal from "./components/ManageGroupsModal";
 import Zone from "./types/Zone";
+import type { LatLng, LeafletMouseEvent } from "./types/leaflet-types";  // 移动到类型文件
 
-const MapSection = dynamic(() => import("./components/MapSection"), {
-  ssr: false,
-});
+
+const MapSection = dynamic(
+  () => 
+    import("./components/MapSection").then((mod) => {
+      if (typeof window !== 'undefined') {
+        require('leaflet-geometryutil');
+        require('leaflet-arrowheads');
+      }
+      return mod.default;
+    }),
+  {
+    ssr: false,
+  }
+);
 
 const Home: React.FC = () => {
   const [pinnedPoints, setPinnedPoints] = useState<PinnedPoint[]>([]);

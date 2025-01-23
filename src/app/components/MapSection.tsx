@@ -2,13 +2,34 @@
 "use client";
 
 import React from "react";
+import dynamic from 'next/dynamic';
 import { LatLng, LatLngTuple, LeafletMouseEvent } from "leaflet";
-import { MapContainer, TileLayer, Marker, Polygon, useMapEvents } from "react-leaflet";
+import { useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { mapPinIcon, mapPinIconGrey, mapPinIconGreyHighlighted, mapPinIconHighlighted } from "../components/MapMarker";
 import PinnedPoint from "../types/PinnedPoint";
 import PathWithArrow from "../components/PathWithArrow";
 import Group from "../types/Group";
+
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
+
+const Polygon = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Polygon),
+  { ssr: false }
+);
 
 interface MapSectionProps {
   pinnedPoints: PinnedPoint[];
@@ -85,14 +106,33 @@ const MapSection: React.FC<MapSectionProps> = ({
   
     return mapPinIconGrey; // Grey
   };
+
+
+    // 使用 useMemo 缓存地图配置
+    const mapConfig = React.useMemo(
+      () => ({
+        center: [-33.8688, 151.2093] as LatLngTuple,
+        zoom: 13,
+      }),
+      []
+    );
   
+
   
   return (
     <div className="w-2/3 h-full">
       <MapContainer
-        center={[-33.8688, 151.2093]} // Sydney coordinates
-        zoom={13}
+        // center={[-33.8688, 151.2093]} // Sydney coordinates
+        // zoom={13}
+        center={mapConfig.center}
+        zoom={mapConfig.zoom}
         style={{ height: "100%", width: "100%" }}
+        whenReady={() => {
+          // 使用 setTimeout 来确保地图完全加载
+          setTimeout(() => {
+            document.querySelector('.leaflet-container')?.classList.add('ready');
+          }, 0);
+        }}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -149,4 +189,4 @@ const MapSection: React.FC<MapSectionProps> = ({
   );
 };
 
-export default MapSection;
+export default React.memo(MapSection);
