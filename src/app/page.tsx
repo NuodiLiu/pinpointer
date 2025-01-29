@@ -4,19 +4,16 @@
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "tailwindcss/tailwind.css";
-// import { LatLng, LeafletMouseEvent } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { v4 as uuidv4 } from 'uuid';
 import PinnedPoint from "./types/PinnedPoint";
 import PinnedPointsList from './components/PinnedPointsList';
 import NavigationBar from "./components/NavigationBar";
 import PinnedPointsOperationBar from "./components/PinnedPointsOperationBar";
-// import "leaflet-arrowheads";
 import Group from "./types/Group";
 import ManageGroupsModal from "./components/ManageGroupsModal";
 import Zone from "./types/Zone";
-import type { LatLng, LeafletMouseEvent } from "./types/leaflet-types";  // 移动到类型文件
-
+import type { LatLng, LeafletMouseEvent } from "./types/leaflet-types";  // in type file
 
 const MapSection = dynamic(
   () => 
@@ -88,7 +85,7 @@ const Home: React.FC = () => {
   
           setPinnedPoints(pinnedPoints || []);
           setGroups(groups || [DEFAULT_GROUP]);
-          setZones(zones || []);
+          setZones(zones);
           setDraggingPoint(draggingPoint || null);
           setCurrentFile(currentFile || "New Route");
           setFileList(fileList || ["New Route"]);
@@ -99,6 +96,7 @@ const Home: React.FC = () => {
           console.error("Failed to parse saved state:", error);
         }
       }
+      console.log(zones);
     };
   
     loadState();
@@ -400,6 +398,7 @@ const Home: React.FC = () => {
         <MapSection
           pinnedPoints={pinnedPoints}
           groups={groups}
+          zones={zones}
           draggingPoint={draggingPoint}
           isViewOnly={isViewOnly}
           displayNoFlyZone={displayNoFlyZone}

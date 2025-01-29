@@ -56,7 +56,7 @@ export default function ManageGroupsModal({
    */
   const ungrouped = groups.find((g) => g.id === DEFAULT_GROUP_ID);
   if (!ungrouped) {
-    return <div>未找到 id="ungrouped" 的组，请检查数据结构。</div>;
+    return <div>could not find group with id="ungrouped", please check data strucutre.</div>;
   }
 
   const ungroupedPoints = ungrouped.pinnedPoints;
@@ -313,10 +313,10 @@ export default function ManageGroupsModal({
                 key={getItemId(item)}
                 item={item}
                 groups={groups}
-                expandedGroups={expandedGroups}      // 🆕 pass down
-                onToggleFold={handleToggleFold}       // 🆕 pass down
+                expandedGroups={expandedGroups}     
+                onToggleFold={handleToggleFold}     
                 onToggleVisibility={toggleGroupVisibility}
-                onRenameGroup={handleRenameGroup}     // 🆕 pass down
+                onRenameGroup={handleRenameGroup}     
               />
             ))}
           </div>

@@ -10,6 +10,7 @@ import { mapPinIcon, mapPinIconGrey, mapPinIconGreyHighlighted, mapPinIconHighli
 import PinnedPoint from "../types/PinnedPoint";
 import PathWithArrow from "../components/PathWithArrow";
 import Group from "../types/Group";
+import Zone from "../types/Zone";
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -34,6 +35,7 @@ const Polygon = dynamic(
 interface MapSectionProps {
   pinnedPoints: PinnedPoint[];
   groups: Group[];
+  zones: Zone[];
   draggingPoint: LatLng | null;
   isViewOnly: boolean;
   displayNoFlyZone: boolean;
@@ -50,33 +52,10 @@ const MapWithEvents: React.FC<{ onMapClick: (event: LeafletMouseEvent) => void }
   return null;
 };
 
-const noFlyZones = [
-  {
-    name: "Forbidden 1",
-    coordinates: [
-      [-33.865143, 151.2099],
-      [-33.863224, 151.2069],
-      [-33.866244, 151.2049],
-      [-33.868122, 151.2089],
-      [-33.868132, 151.2094],
-      [-33.865143, 151.2099],
-    ],
-  },
-  {
-    name: "Forbidden 2",
-    coordinates: [
-      [-33.870000, 151.2150],
-      [-33.868000, 151.2120],
-      [-33.871000, 151.2100],
-      [-33.873000, 151.2130],
-      [-33.870000, 151.2150],
-    ],
-  },
-];
-
 const MapSection: React.FC<MapSectionProps> = ({
   pinnedPoints,
   groups,
+  zones,
   draggingPoint,
   isViewOnly,
   displayNoFlyZone,
@@ -108,14 +87,14 @@ const MapSection: React.FC<MapSectionProps> = ({
   };
 
 
-    // 使用 useMemo 缓存地图配置
-    const mapConfig = React.useMemo(
-      () => ({
-        center: [-33.8688, 151.2093] as LatLngTuple,
-        zoom: 13,
-      }),
-      []
-    );
+  // 使用 useMemo 缓存地图配置
+  const mapConfig = React.useMemo(
+    () => ({
+      center: [-33.8688, 151.2093] as LatLngTuple,
+      zoom: 13,
+    }),
+    []
+  );
   
 
   
@@ -174,13 +153,13 @@ const MapSection: React.FC<MapSectionProps> = ({
         <PathWithArrow points={pinnedPoints} />
 
         {/* Render no-fly zones */}
-        {displayNoFlyZone && noFlyZones.map((zone, index) => (
+        {displayNoFlyZone && zones.map((zone) => (
           <Polygon
-            key={index}
-            positions={zone.coordinates as LatLngTuple[]}
+            key={zone.id}
+            positions={zone.points.map((point) => [point.latitude, point.longitude] as LatLngTuple)}
             pathOptions={{ color: "red", fillColor: "red", fillOpacity: 0.5 }}
             eventHandlers={{
-              click: () => alert(`${zone.name}`),
+              click: () => alert(zone.name),
             }}
           />
         ))}

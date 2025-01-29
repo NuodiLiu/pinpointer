@@ -36,7 +36,17 @@ const MapPage: React.FC = () => {
   }, []);
 
   const handleBack = () => {
-    sessionStorage.setItem("zones", JSON.stringify(zones));
+    // save current change for zones
+    const storedStateString = sessionStorage.getItem("mapState");
+    if (storedStateString) {
+      const storedState = JSON.parse(storedStateString);
+      storedState.zones = zones;
+      sessionStorage.setItem("mapState", JSON.stringify(storedState));
+    } else {
+      console.error("No mapState found in sessionStorage.");
+    }
+    
+    // redirect to other page.
     router.push('/')
   };
 
