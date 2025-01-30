@@ -1,74 +1,127 @@
-// app/api/locationInfo/route.js
-
 import { NextResponse } from 'next/server';
 
 /**
- * Handles GET requests to retrieve location information based on longitude and latitude.
- * 
- * @param {Request} request - The incoming request object.
- * @returns {Response} - JSON response containing city name and elevation.
+ * Handles both GET (query params) and POST (JSON body) requests for location info.
  */
 export async function GET(request: Request) {
-  // Parse the URL to extract query parameters
   const { searchParams } = new URL(request.url);
-  const lng = searchParams.get('lng');
-  const lat = searchParams.get('lat');
+  const locations = searchParams.getAll('locations'); // Array of "lat,lng" strings
 
-  // Validate that both lng and lat are provided
-  if (!lng || !lat) {
+  if (locations.length === 0) {
     return NextResponse.json(
-      { error: 'Please provide both longitude (lng) and latitude (lat) parameters.' },
+      { error: 'Please provide at least one location in the format latitude,longitude.' },
       { status: 400 }
     );
   }
 
+  return await processLocations(locations);
+}
+
+export async function POST(request: Request) {
   try {
-    // 1. Call Nominatim API for reverse geocoding to get address information
-    const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-    const nominatimResponse = await fetch(nominatimUrl, {
-      headers: {
-        'User-Agent': 'pinpoint/1.0',
-      },
-    });
+    const { locations } = await request.json();
 
-    // Check if the Nominatim API request was successful
-    if (!nominatimResponse.ok) {
-      throw new Error('Failed to retrieve data from Nominatim API.');
+    if (!Array.isArray(locations) || locations.length === 0) {
+      return NextResponse.json(
+        { error: 'Invalid JSON format. Expected {"locations": [{"lat": xx, "lng": yy}, ...]}' },
+        { status: 400 }
+      );
     }
 
-    const nominatimData = await nominatimResponse.json();
+    // Convert to "lat,lng" format for processing
+    const locationStrings = locations.map(({ lat, lng }) => `${lat},${lng}`);
 
-    // Extract the city name from the address data
-    const address = nominatimData.address;
-    const city = address.city || address.town || address.village || 'Unknown City';
-    console.log("Address: " + address);
+    return await processLocations(locationStrings);
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid JSON format' }, { status: 400 });
+  }
+}
 
-    // 2. Call Open-Elevation API to get elevation data
-    const elevationUrl = `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`;
-    const elevationResponse = await fetch(elevationUrl);
+/**
+ * Processes location queries, calls Nominatim and Open-Elevation APIs.
+ */
+async function processLocations(locations: string[]): Promise<Response> {
+  try {
+    // 1. Fetch Address Data from Nominatim
+    const locationData = await Promise.all(
+      locations.map(async (loc) => {
+        const [lat, lng] = loc.split(',');
+        if (!lat || !lng) return null;
 
-    // Check if the Open-Elevation API request was successful
-    if (!elevationResponse.ok) {
-      throw new Error('Failed to retrieve data from Open-Elevation API.');
+        const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`;
+        const nominatimResponse = await fetch(nominatimUrl, {
+          headers: { 'User-Agent': 'pinpoint/1.0' },
+        });
+
+        if (!nominatimResponse.ok) {
+          throw new Error(`Nominatim API error: ${nominatimResponse.status}`);
+        }
+
+        const nominatimData = await nominatimResponse.json();
+        const address = nominatimData.address || {};
+        const city =
+          address.city ||
+          address.town ||
+          address.village ||
+          address.suburb ||
+          address.county ||
+          'Unknown Location';
+
+        return {
+          lat: parseFloat(lat),
+          lng: parseFloat(lng),
+          city,
+          display_name: nominatimData.display_name || '',
+        };
+      })
+    );
+
+    const validLocations = locationData.filter((loc) => loc !== null);
+    if (validLocations.length === 0) {
+      return NextResponse.json({ error: 'Invalid locations provided.' }, { status: 400 });
     }
 
-    const elevationData = await elevationResponse.json();
-    const elevation = elevationData.results[0].elevation; // Elevation in meters
-    console.log("Elevation: " + address);
+    // 2. Fetch Elevation Data (Batch Request)
+    const elevationResults = await fetchElevationData(validLocations);
 
-    // 3. Return the collected information as a JSON response
-    return NextResponse.json({
-      city,
-      elevation, // Elevation in meters
-      latitude: lat,
-      longitude: lng,
-      display_name: nominatimData.display_name,
-    });
+    // 3. Merge Data and Return Response
+    const responseData = validLocations.map((loc, index) => ({
+      ...loc,
+      elevation: elevationResults[index]?.elevation || 0, // Default to sea level if no data
+    }));
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error(error);
     return NextResponse.json(
       { error: 'Internal server error. Please try again later.' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Fetches elevation data using Open-Elevation API (chooses GET or POST automatically).
+ */
+async function fetchElevationData(locations: { lat: number; lng: number }[]): Promise<{ latitude: number; longitude: number; elevation: number }[]> {
+  const getQuery = locations.map(({ lat, lng }) => `${lat},${lng}`).join('|');
+  const getUrl = `https://api.open-elevation.com/api/v1/lookup?locations=${getQuery}`;
+
+  if (getUrl.length <= 1024) {
+    // Use GET if within 1024-byte limit
+    const response = await fetch(getUrl);
+    if (!response.ok) throw new Error(`Open-Elevation API error: ${response.status}`);
+    return (await response.json()).results;
+  } else {
+    // Use POST if GET request is too long
+    const postUrl = `https://api.open-elevation.com/api/v1/lookup`;
+    const postData = { locations: locations.map(({ lat, lng }) => ({ latitude: lat, longitude: lng })) };
+    const response = await fetch(postUrl, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(postData),
+    });
+    if (!response.ok) throw new Error(`Open-Elevation API error: ${response.status}`);
+    return (await response.json()).results;
   }
 }

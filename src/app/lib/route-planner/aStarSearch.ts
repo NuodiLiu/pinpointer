@@ -1,4 +1,5 @@
 import Heap from 'heap';
+import { isValidGridCoordinate } from './util';
 
 export interface GridCell {
   row: number;
@@ -27,9 +28,11 @@ export function aStarSearch(
 ): AStarNode[] | null {
   console.log('=== A* START ===');
   console.log('Start:', start, 'End:', end);
-
   console.log("Grid size:", grid.length, grid[0].length);
-  console.log("Start cell cost:", grid[10]?.[17]?.cost);
+
+  if (!isValidGridCoordinate(start.row, start.col) || !isValidGridCoordinate(end.row, end.col)) {
+    return null;
+  }
 
   const openList = new Heap<AStarNode>((a, b) => a.f - b.f);
   const closedSet = new Set<string>();
@@ -144,6 +147,7 @@ function getNeighbors(grid: Grid, node: AStarNode): AStarNode[] {
     if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid[0].length) {
       continue;
     }
+    
     // cost=∞ 的格子无法通行
     if (grid[nr][nc].cost === Infinity) {
       continue;

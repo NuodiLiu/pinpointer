@@ -24,3 +24,19 @@ export function transformLatLngToRowCol(latitude: number, longitude: number) {
   const col = Math.round((longitude - WEST_BOUNDARY) / STEP_SIZE);
   return { row, col };
 }
+
+export const areCoordinatesClose = (a: number, b: number, tolerance: number = STEP_SIZE) => {
+  return Math.abs(a - b) < tolerance;
+};
+
+export function isValidGridCoordinate(row: number, col: number): boolean {
+  if (row < 0 || row >= gridHeight || col < 0 || col >= gridWidth) {
+    const { lat, lng } = transformRowColToLatLng(row, col);
+    console.warn(`Warning: Coordinate (row=${row}, col=${col}) is out of bounds!`);
+    console.warn(`Corresponding lat/lng: (${lat.toFixed(6)}, ${lng.toFixed(6)})`);
+    console.warn(`Valid range: row=[0, ${gridHeight - 1}], col=[0, ${gridWidth - 1}]`);
+    console.warn("Some points are outside of Sydney area. Auto routing is not yet supported.");
+    return false;
+  }
+  return true;
+}

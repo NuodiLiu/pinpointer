@@ -14,6 +14,8 @@ import Group from "./types/Group";
 import ManageGroupsModal from "./components/ManageGroupsModal";
 import Zone from "./types/Zone";
 import type { LatLng, LeafletMouseEvent } from "./types/leaflet-types";  // in type file
+import { normalizeCoordinate } from "./lib/normalizePoints";
+import { areCoordinatesClose } from "./lib/route-planner/util";
 
 const MapSection = dynamic(
   () => 
@@ -114,6 +116,7 @@ const Home: React.FC = () => {
     fetchFiles();
   }, []);
 
+
   // Handle map click events
   const handleMapClick = (event: LeafletMouseEvent) => {
     if (isViewOnly) return;
@@ -122,8 +125,8 @@ const Home: React.FC = () => {
     const newPoint: PinnedPoint = {
       id: uuidv4(),
       name: `Point ${pinnedPoints.length + 1}`,
-      latitude: lat,
-      longitude: lng,
+      latitude: normalizeCoordinate(lat),
+      longitude: normalizeCoordinate(lng),
       height: 100,
     };
     setPinnedPoints([...pinnedPoints, newPoint]);
@@ -234,9 +237,17 @@ const Home: React.FC = () => {
 
   const handlePointRemove = (pointToRemove: PinnedPoint) => {
     setPinnedPoints((prevPoints) =>
-      prevPoints.filter((point) => point !== pointToRemove)
+      prevPoints.filter((point) => point.id !== pointToRemove.id)
+    );
+  
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => ({
+        ...group,
+        pinnedPoints: group.pinnedPoints.filter((point) => point.id !== pointToRemove.id),
+      }))
     );
   };
+  
 
   const handlePointUpdate = (updatedPoint: PinnedPoint) => {
     setPinnedPoints((prevPoints) =>
@@ -381,6 +392,85 @@ const Home: React.FC = () => {
     setDisplayNoFlyZone((prev) => !prev);
   };
 
+  const planRoute = async () => {
+    const processRoute = (route: { lat: number; lng: number }[] | null) => {
+      if (!route || route.length === 0) {
+        console.log("Route is empty or null, no new points are created");
+        return;
+      }
+    
+      let updatedPoints: PinnedPoint[] = [...pinnedPoints];
+      let newPoints: PinnedPoint[] = [];
+      let index = 0;
+    
+      for (const r of route) {
+        if (
+          index < updatedPoints.length && 
+          areCoordinatesClose(updatedPoints[index].latitude, r.lat) &&
+          areCoordinatesClose(updatedPoints[index].longitude, r.lng)
+        ) {
+          index++; // 当前位置匹配 pinnedPoints，跳过到下一个
+        } else {
+          // 创建新点
+          const newPoint: PinnedPoint = {
+            id: uuidv4(),
+            name: `Auto-Added-${index}`,
+            latitude: normalizeCoordinate(r.lat),
+            longitude: normalizeCoordinate(r.lng),
+            height: 0, // 这里可以自行设置默认高度
+          };
+
+          // 插入到 updatedPoints 中
+          updatedPoints.splice(index, 0, newPoint);
+          newPoints.push(newPoint); // 记录新点
+          index++; // 继续处理下一个
+        }
+      }
+    
+      setPinnedPoints(updatedPoints);
+
+      // 如果有新点，更新 groups，将它们加入 `DEFAULT_GROUP`
+      if (newPoints.length > 0) {
+        setGroups((prevGroups) =>
+          prevGroups.map((group) =>
+            group.id === DEFAULT_GROUP.id
+              ? {
+                  ...group,
+                  pinnedPoints: [...group.pinnedPoints, ...newPoints],
+                }
+              : group
+          )
+        );
+      }
+    };
+
+    const preferredZones: Zone[] = [];
+    try {
+      const response = await fetch("/api/plan-route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pinnedPoints,
+          zones,
+          preferredZones,
+        }),
+      });
+  
+      const result = await response.json();
+  
+      if (!result.success) {
+        alert("No route found. Please adjust your points and try again.");
+        return;
+      }
+  
+      processRoute(result.data);
+    } catch (error) {
+      console.error("Error while planning route:", error);
+    }
+  };
+  
+
+
   return (
     <div className="flex flex-col h-screen">
       {/* Top navigation bar */}
@@ -391,6 +481,7 @@ const Home: React.FC = () => {
         toggleViewOnly={toggleViewOnly}
         displayNoFlyZone={displayNoFlyZone}
         toggleDisplayNoFlyZone={toggleDisplayNoFlyZone}
+        onPlanRoute={planRoute}
       />
   
       <div className="flex flex-1 overflow-hidden">
@@ -449,3 +540,4 @@ const Home: React.FC = () => {
 };
 
 export default Home;
+

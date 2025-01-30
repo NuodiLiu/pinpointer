@@ -1,8 +1,8 @@
 import * as turf from "@turf/turf";
-import Zone from "../type/Zone";
-import { Grid, GridCell } from "../type/GridCell";
-import PinnedPoint from "../type/PinnedPoint";
 import { gridHeight, gridWidth, transformRowColToLatLng } from "./util";
+import Zone from "@/app/types/Zone";
+import { Grid, GridCell } from "./aStarSearch";
+import PinnedPoint from "@/app/types/PinnedPoint";
 
 export function buildCostGrid(
   // gridHeight: number,

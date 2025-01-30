@@ -1,8 +1,9 @@
-import PinnedPoint from "../type/PinnedPoint";
-import Zone from "../type/Zone";
+import PinnedPoint from "@/app/types/PinnedPoint";
 import { aStarSearch } from "./aStarSearch";
 import { buildCostGrid } from "./gridBuilder";
 import { transformLatLngToRowCol, transformRowColToLatLng } from "./util";
+import Zone from "@/app/types/Zone";
+import { normalizeCoordinate } from "../normalizePoints";
 
 /**
  * 根据“已知顺序”的必经点，依次调用A*搜索并拼接路径
@@ -43,8 +44,11 @@ export async function planRouteWithOrderedPoints(
     // 将网格路径转为地理坐标
     const partialGeo = partial.map((node) => {
       const { lat, lng } = transformRowColToLatLng(node.row, node.col);
-      return { lat, lng };
-    });
+      return { 
+        lat: normalizeCoordinate(lat), 
+        lng: normalizeCoordinate(lng)
+      };
+    });    
 
     // 3) 拼接到 finalPath
     if (i === 0) {

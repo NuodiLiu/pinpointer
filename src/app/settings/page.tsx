@@ -28,11 +28,20 @@ const MapPage: React.FC = () => {
   const [editedName, setEditedName] = useState<string>("");
 
   useEffect(() => {
-    const file = sessionStorage.getItem("currentFile");
-    const zones = sessionStorage.getItem("zones");
+    const savedState = sessionStorage.getItem("mapState");
+    if (savedState) {
+      try {
+        const {
+          zones,
+          currentFile,
+        } = JSON.parse(savedState);
 
-    setCurrentFile(file);
-    setZones(zones ? JSON.parse(zones) : []);
+        setCurrentFile(currentFile);
+        setZones(zones);
+      } catch (error) {
+        console.error("Failed to parse saved state:", error);
+      }
+    }
   }, []);
 
   const handleBack = () => {

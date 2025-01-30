@@ -9,6 +9,7 @@ interface NavigationBarProps {
   toggleViewOnly: () => void;
   displayNoFlyZone: boolean;
   toggleDisplayNoFlyZone: () => void;
+  onPlanRoute: () => void;
 }
 
 const NavigationBar: React.FC<NavigationBarProps> = ({
@@ -17,7 +18,8 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   isViewOnly,
   toggleViewOnly,
   displayNoFlyZone,
-  toggleDisplayNoFlyZone
+  toggleDisplayNoFlyZone,
+  onPlanRoute,
 }) => {
   return (
     <div className="h-12 bg-white-500 flex items-center px-4 text-white font-bold justify-between border border-gray-300">
@@ -44,6 +46,14 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
             aria-label="Upload JSON"
           />
         </label>
+
+        {/* Plan Route Button */}
+        <button
+          onClick={onPlanRoute}
+          className="bg-yellow-500 px-4 py-1 rounded text-white cursor-pointer hover:bg-yellow-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-yellow-300"
+        >
+          Plan Route
+        </button>
 
         <label className="flex items-center space-x-2 cursor-pointer">
           <input
