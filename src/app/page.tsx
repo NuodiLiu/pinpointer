@@ -8,7 +8,6 @@ import "leaflet/dist/leaflet.css";
 import { v4 as uuidv4 } from 'uuid';
 import PinnedPoint from "./types/PinnedPoint";
 import PinnedPointsList from './components/PinnedPointsList';
-import NavigationBar from "./components/NavigationBar";
 import PinnedPointsOperationBar from "./components/PinnedPointsOperationBar";
 import Group from "./types/Group";
 import ManageGroupsModal from "./components/ManageGroupsModal";
@@ -16,6 +15,8 @@ import Zone from "./types/Zone";
 import type { LatLng, LeafletMouseEvent } from "./types/leaflet-types";  // in type file
 import { normalizeCoordinate } from "./lib/normalizePoints";
 import { areCoordinatesClose } from "./lib/route-planner/util";
+import { MapPinIconType, MapSettings } from "./types/MapSetting";
+import NavigationBar from "./components/NavigationBar";
 
 const MapSection = dynamic(
   () => 
@@ -52,6 +53,10 @@ const Home: React.FC = () => {
   const [isPending, setIsPending] = useState<boolean>(false); 
   const [isManageGroupsModalOpen, setIsManageGroupsModalOpen] = useState(false);
   const [displayNoFlyZone, setDisplayNoFlyZone] = useState(true); // default display no fly zone
+  const [mapSettings, setMapSettings] = useState<MapSettings>({
+    pinIconType: "default",
+    arrowColor: "#FFA500",
+  });
 
   const saveState = () => {
     const state = {
@@ -469,7 +474,19 @@ const Home: React.FC = () => {
     }
   };
   
+  const changeArrowColor = (newColor: string) => {
+    setMapSettings((prev) => ({
+      ...prev,
+      arrowColor: newColor,
+    }));
+  };
 
+  const changePinIconType = (newType: MapPinIconType) => {
+    setMapSettings((prev) => ({
+      ...prev,
+      pinIconType: newType,
+    }));
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -482,6 +499,8 @@ const Home: React.FC = () => {
         displayNoFlyZone={displayNoFlyZone}
         toggleDisplayNoFlyZone={toggleDisplayNoFlyZone}
         onPlanRoute={planRoute}
+        changeArrowColor={changeArrowColor}
+        changePinIconType={changePinIconType}
       />
   
       <div className="flex flex-1 overflow-hidden">
@@ -496,6 +515,7 @@ const Home: React.FC = () => {
           onMapClick={handleMapClick}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          mapSettings={mapSettings}
         />
   
         {/* Right section */}

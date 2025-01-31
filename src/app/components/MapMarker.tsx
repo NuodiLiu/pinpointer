@@ -1,30 +1,14 @@
 // Import Leaflet and set custom icon
 import L from "leaflet";
+import { mapPinIconUrls } from "../types/MapSetting";
 
-export const mapPinIcon = new L.Icon({
-  iconUrl: "/images/map_pin.png", // Path to your custom map pin
-  iconSize: [32, 32], // Adjust the size of the icon
-  iconAnchor: [16, 32], // Anchor the icon (center bottom of the image)
-  popupAnchor: [0, -32], // Position of the popup relative to the icon
-});
+export const getMapPinIcon = (type: keyof typeof mapPinIconUrls, isHighlighted: boolean) => {
+  const iconSize: [number, number] = isHighlighted ? [40, 40] : [32, 32];
 
-export const mapPinIconGrey = new L.Icon({
-  iconUrl: "/images/map_pin_grey.png", // Path to your custom map pin
-  iconSize: [32, 32], // Adjust the size of the icon
-  iconAnchor: [16, 32], // Anchor the icon (center bottom of the image)
-  popupAnchor: [0, -32], // Position of the popup relative to the icon
-});
-
-export const mapPinIconHighlighted = new L.Icon({
-  iconUrl: "/images/map_pin.png", // Path to your custom map pin
-  iconSize: [40, 40], // Adjust the size of the icon
-  iconAnchor: [16, 32], // Anchor the icon (center bottom of the image)
-  popupAnchor: [0, -32], // Position of the popup relative to the icon
-});
-
-export const mapPinIconGreyHighlighted = new L.Icon({
-  iconUrl: "/images/map_pin_grey.png", // Path to your custom map pin
-  iconSize: [40, 40], // Adjust the size of the icon
-  iconAnchor: [16, 32], // Anchor the icon (center bottom of the image)
-  popupAnchor: [0, -32], // Position of the popup relative to the icon
-});
+  return new L.Icon({
+    iconUrl: mapPinIconUrls[type],
+    iconSize,
+    iconAnchor: [16, iconSize[1]],
+    popupAnchor: [0, -iconSize[1]],
+  });
+};

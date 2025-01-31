@@ -1,5 +1,6 @@
 "use client"
 import dynamic from 'next/dynamic';
+import { MapSettings } from '../types/MapSetting';
 
 const PathWithArrowClient = dynamic(
   () => import('./PathWithArrowClient'),
@@ -8,7 +9,12 @@ const PathWithArrowClient = dynamic(
   }
 );
 
-const PathWithArrow: React.FC<{ points: { latitude: number; longitude: number }[] }> = (props) => {
+interface PathWithArrowProps {
+  points: { latitude: number; longitude: number }[];
+  mapSettings?: MapSettings
+}
+
+const PathWithArrow: React.FC<PathWithArrowProps> = (props) => {
   return <PathWithArrowClient {...props} />;
 };
 

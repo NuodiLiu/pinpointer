@@ -4,8 +4,14 @@ import L from "leaflet";
 import { useMap } from "react-leaflet";
 import "leaflet-arrowheads";
 import "leaflet/dist/leaflet.css";
+import { MapSettings } from "../types/MapSetting";
 
-const PathWithArrowClient: React.FC<{ points: { latitude: number; longitude: number }[] }> = ({ points }) => {
+interface PathWithArrowClientProps {
+  points: { latitude: number; longitude: number }[];
+  mapSettings?: MapSettings
+}
+
+const PathWithArrowClient: React.FC<PathWithArrowClientProps> = ({ points, mapSettings }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -25,7 +31,7 @@ const PathWithArrowClient: React.FC<{ points: { latitude: number; longitude: num
           [end.latitude, end.longitude],
         ],
         {
-          color: "#FFA500",
+          color: mapSettings?.arrowColor || "#FFA500",
           weight: 5,
         }
       );
@@ -36,7 +42,7 @@ const PathWithArrowClient: React.FC<{ points: { latitude: number; longitude: num
         size: "10px",
         frequency: "endonly",
         fill: true,
-        fillColor: "#FFA500",
+        fillColor: mapSettings?.arrowColor || "#FFA500",
       });
 
       setTimeout(() => polyline.redraw(), 0);
@@ -48,7 +54,7 @@ const PathWithArrowClient: React.FC<{ points: { latitude: number; longitude: num
       polylineGroup.clearLayers();
       map.removeLayer(polylineGroup);
     };
-  }, [map, points]);
+  }, [map, points, mapSettings]);
 
   return null;
 };

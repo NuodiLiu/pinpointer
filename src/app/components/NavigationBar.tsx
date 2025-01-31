@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { arrowColors, MapPinIconType, mapPinIconUrls } from "../types/MapSetting";
+import SettingsDropdown from "./MapSettingsDropDown";
 
 interface NavigationBarProps {
   onDownloadJson: () => void;
@@ -10,6 +12,8 @@ interface NavigationBarProps {
   displayNoFlyZone: boolean;
   toggleDisplayNoFlyZone: () => void;
   onPlanRoute: () => void;
+  changeArrowColor: (color: string) => void;
+  changePinIconType: (type: MapPinIconType) => void;
 }
 
 const NavigationBar: React.FC<NavigationBarProps> = ({
@@ -20,6 +24,8 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   displayNoFlyZone,
   toggleDisplayNoFlyZone,
   onPlanRoute,
+  changeArrowColor,
+  changePinIconType
 }) => {
   return (
     <div className="h-12 bg-white-500 flex items-center px-4 text-white font-bold justify-between border border-gray-300">
@@ -79,6 +85,12 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           />
           <span className="text-gray-700">View Only</span>
         </label>
+
+      <SettingsDropdown
+        changePinIconType={changePinIconType}
+        changeArrowColor={changeArrowColor}
+      />
+        
       </div>
     </div>
   );

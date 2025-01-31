@@ -16,6 +16,7 @@
     "@tiptap/react": "^2.11.2",
     "@tiptap/starter-kit": "^2.11.2",
     "@turf/turf": "^7.2.0",
+    "clsx": "^2.1.1",
     "fs": "^0.0.1-security",
     "heap": "^0.2.7",
     "leaflet": "^1.9.4",

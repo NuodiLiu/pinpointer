@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import PinnedPoint from '../types/PinnedPoint';
 import Zone from '../types/Zone';
 import { LatLng } from 'leaflet';
-import { mapPinIcon, mapPinIconGrey } from './MapMarker';
+import { getMapPinIcon } from './MapMarker';
 
 // If you define or import your Leaflet icons elsewhere (e.g., mapPinIcon, mapPinIconGrey),
 // just make sure they are passed in or accessible in this component scope.
@@ -30,6 +30,10 @@ export default function MapSection2({
   handleDeletePoint,
   MapClickHandler,
 }: MapSection2Props) {
+  const defaultIcon = React.useMemo(() => getMapPinIcon("default", false), []);
+  const greyIcon = React.useMemo(() => getMapPinIcon("grey", false), []);
+
+  console.log(defaultIcon);
   return (
     <MapContainer
       center={[-33.8688, 151.2093]} // Sydney coordinates
@@ -48,7 +52,7 @@ export default function MapSection2({
         <Marker
           key={point.id}
           position={[point.latitude, point.longitude]}
-          icon={mapPinIcon}
+          icon={defaultIcon}
           draggable
           eventHandlers={{
             dragstart: (e) => {
@@ -67,7 +71,7 @@ export default function MapSection2({
           {draggingPoint && (
             <Marker
               position={[draggingPoint.lat, draggingPoint.lng]}
-              icon={mapPinIconGrey}
+              icon={greyIcon}
             />
           )}
 

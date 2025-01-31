@@ -1,16 +1,17 @@
 // app/components
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import dynamic from 'next/dynamic';
 import { LatLng, LatLngTuple, LeafletMouseEvent } from "leaflet";
 import { useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { mapPinIcon, mapPinIconGrey, mapPinIconGreyHighlighted, mapPinIconHighlighted } from "../components/MapMarker";
 import PinnedPoint from "../types/PinnedPoint";
 import PathWithArrow from "../components/PathWithArrow";
 import Group from "../types/Group";
 import Zone from "../types/Zone";
+import { getMapPinIcon } from "./MapMarker";
+import { MapSettings } from "../types/MapSetting";
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -42,6 +43,7 @@ interface MapSectionProps {
   onMapClick: (event: LeafletMouseEvent) => void;
   onDragStart: (position: LatLng) => void;
   onDragEnd: (id: string, position: LatLng) => void;
+  mapSettings: MapSettings;
 }
 
 // Component for capturing map events
@@ -62,42 +64,43 @@ const MapSection: React.FC<MapSectionProps> = ({
   onMapClick,
   onDragStart,
   onDragEnd,
+  mapSettings,
 }) => {
-  const getPointIcon = (point: PinnedPoint) => {
-    const pointGroups = groups.filter((group) =>
-      group.pinnedPoints.some((p) => p.id === point.id)
-    );
+  const getPointIcon = useMemo(() => {
+    const iconCache = new Map<string, L.Icon>();
   
-    const isSelected = pointGroups.some((group) => group.isSelected);
-    const isVisible = pointGroups.some((group) => group.isVisible);
+    return (point: PinnedPoint) => {
+      const pointGroups = groups.filter((group) =>
+        group.pinnedPoints.some((p) => p.id === point.id)
+      );
   
-    if (isVisible && isSelected) {
-      return mapPinIconHighlighted; // Red highlighted
-    }
+      const isSelected = pointGroups.some((group) => group.isSelected);
+      const isVisible = pointGroups.some((group) => group.isVisible);
   
-    if (!isVisible && isSelected) {
-      return mapPinIconGreyHighlighted; // Grey highlighted
-    }
+      const type = isVisible ? (mapSettings.pinIconType || "default") : "grey";
+      const isHighlighted = isSelected;
   
-    if (isVisible && !isSelected) {
-      return mapPinIcon; // Red
-    }
+      // cache key
+      const cacheKey = `${type}-${isHighlighted}`;
   
-    return mapPinIconGrey; // Grey
-  };
+      if (!iconCache.has(cacheKey)) {
+        iconCache.set(cacheKey, getMapPinIcon(type, isHighlighted));
+      }
+  
+      return iconCache.get(cacheKey)!;
+    };
+  }, [groups, mapSettings]);
 
-
-  // 使用 useMemo 缓存地图配置
-  const mapConfig = React.useMemo(
+  // use useMemo cache map settings
+  const mapConfig = useMemo(
     () => ({
       center: [-33.8688, 151.2093] as LatLngTuple,
       zoom: 13,
     }),
     []
   );
-  
 
-  
+
   return (
     <div className="w-2/3 h-full">
       <MapContainer
@@ -143,14 +146,14 @@ const MapSection: React.FC<MapSectionProps> = ({
             {draggingPoint && (
               <Marker
                 position={[draggingPoint.lat, draggingPoint.lng]}
-                icon={mapPinIconGrey}
+                icon={getMapPinIcon("grey", false)}
               />
             )}
           </Marker>
         ))}
 
         {/* Render path with arrows */}
-        <PathWithArrow points={pinnedPoints} />
+        <PathWithArrow points={pinnedPoints} mapSettings={mapSettings} />
 
         {/* Render no-fly zones */}
         {displayNoFlyZone && zones.map((zone) => (

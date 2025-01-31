@@ -4,7 +4,7 @@ export const NORTH_BOUNDARY = -33.5;  // northern lat
 export const WEST_BOUNDARY = 150.5;
 export const EAST_BOUNDARY = 151.5;
 
-export const STEP_SIZE = 0.03; // 0.005 ideal
+export const STEP_SIZE = 0.011; // 0.005 ideal
 
 export const gridHeight = Math.ceil((NORTH_BOUNDARY - SOUTH_BOUNDARY) / STEP_SIZE);
 export const gridWidth  = Math.ceil((EAST_BOUNDARY - WEST_BOUNDARY) / STEP_SIZE);
