@@ -1,3 +1,5 @@
+import Zone from "@/app/types/Zone";
+
 // boundaries.ts
 export const SOUTH_BOUNDARY = -34.2;  // southern lat
 export const NORTH_BOUNDARY = -33.5;  // northern lat

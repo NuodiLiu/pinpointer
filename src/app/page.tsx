@@ -17,6 +17,7 @@ import { normalizeCoordinate } from "./lib/normalizePoints";
 import { areCoordinatesClose } from "./lib/route-planner/util";
 import { MapPinIconType, MapSettings } from "./types/MapSetting";
 import NavigationBar from "./components/NavigationBar";
+import { preferredZones } from "./lib/route-planner/preferredZones";
 
 const MapSection = dynamic(
   () => 
@@ -453,7 +454,6 @@ const Home: React.FC = () => {
       }
     };
 
-    const preferredZones: Zone[] = [];
     try {
       const response = await fetch("/api/plan-route", {
         method: "POST",

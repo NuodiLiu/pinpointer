@@ -324,7 +324,22 @@ export default function ManageGroupsModal({
 
         <DragOverlay>
           {activeId && (
-            <div className="bg-white p-2 text-sm border shadow-sm">{activeId}</div>
+            <div className="bg-white p-2 text-sm border shadow-sm">
+              {(() => {
+                const item = parseDragId(activeId);
+                if (!item) return activeId;
+                if (item.kind === "group") {
+                  const group = groups.find((g) => g.id === item.groupId);
+                  return group ? group.name : activeId;
+                } else if (item.kind === "point") {
+                  const point = groups
+                    .flatMap((g) => g.pinnedPoints)
+                    .find((p) => p.id === item.pointId);
+                  return point ? point.name : activeId;
+                }
+                return activeId;
+              })()}
+            </div>
           )}
         </DragOverlay>
       </DndContext>
