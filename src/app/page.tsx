@@ -109,18 +109,18 @@ const Home: React.FC = () => {
     loadState();
   }, []);
 
+  const fetchFiles = async () => {
+    const response = await fetch("/api/files");
+    if (response.ok) {
+      const files = await response.json();
+      setFileList(["New Route", ...files]);
+    }
+  };
+
   // init map routes (json file) folder
   useEffect(() => {
-    const fetchFiles = async () => {
-      const response = await fetch("/api/files");
-      if (response.ok) {
-        const files = await response.json();
-        setFileList(["New Route", ...files]);
-      }
-    };
     fetchFiles();
   }, []);
-
 
   // Handle map click events
   const handleMapClick = (event: LeafletMouseEvent) => {
@@ -195,24 +195,28 @@ const Home: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
   
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target?.result as string);
+    const formData = new FormData();
+    formData.append("file", file);
   
-        // Validate JSON structure
-        if (Array.isArray(data.pinnedPoints) && Array.isArray(data.groups)) {
-          setPinnedPoints(data.pinnedPoints);
-          setGroups(data.groups);
-        } else {
-          alert("Invalid JSON file structure");
-        }
-      } catch (err) {
-        alert("Invalid JSON file");
-      }
-    };
-    reader.readAsText(file);
+    fetch("/api/files/upload", {
+      method: "POST",
+      body: formData,
+      cache: "no-store",
+    })
+    .then((response) => {
+      if (!response.ok) throw new Error("Failed to upload file");
+      return response.json();
+    })
+    .then((data) => {
+      console.log("Upload Succeed");
+    })
+    .catch((error) => {
+      alert("Failed to upload");
+    });
+  
+    event.target.value = "";
   };
+  
 
   // load json data from current selected file
   const handleFileSelect = async (fileName: string) => {
@@ -527,6 +531,7 @@ const Home: React.FC = () => {
                 currentFile={currentFile}
                 fileList={fileList}
                 handleFileSelect={handleFileSelect}
+                handleFetchFiles={fetchFiles}
                 handleFileEditStart={handleFileEditStart}
                 handleFileEditFinish={handleFileEditFinish}
                 handleSave={handleSave}

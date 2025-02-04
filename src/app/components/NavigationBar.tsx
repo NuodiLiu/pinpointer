@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { arrowColors, MapPinIconType, mapPinIconUrls } from "../types/MapSetting";
+import React from "react";
+import { MapPinIconType } from "../types/MapSetting";
 import SettingsDropdown from "./MapSettingsDropDown";
 
 interface NavigationBarProps {
@@ -79,7 +79,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           <input
             type="checkbox"
             checked={isViewOnly}
-            onChange={() => toggleViewOnly}
+            onChange={toggleViewOnly}
             className="cursor-pointer rounded focus:ring-2 focus:ring-gray-400"
             aria-label="Toggle View Only"
           />

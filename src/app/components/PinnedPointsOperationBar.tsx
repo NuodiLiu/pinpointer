@@ -9,6 +9,7 @@ interface PointsOperationBarProps {
   currentFile: string;
   fileList: string[];
   handleFileSelect: (fileName: string) => void;
+  handleFetchFiles: () => void;
   handleFileEditStart: () => void;
   handleFileEditFinish: (newName: string) => void;
   handleSave: () => void;
@@ -19,6 +20,7 @@ const PinnedPointsOperationBar: React.FC<PointsOperationBarProps> = ({
   currentFile,
   fileList,
   handleFileSelect,
+  handleFetchFiles,
   handleFileEditStart,
   handleFileEditFinish,
   handleSave,
@@ -39,6 +41,7 @@ const PinnedPointsOperationBar: React.FC<PointsOperationBarProps> = ({
             className="border p-2 rounded"
             value={currentFile}
             onChange={(e) => handleFileSelect(e.target.value)}
+            onMouseDown={handleFetchFiles}
           >
             {fileList.map((file, index) => (
               <option key={index} value={file}>
