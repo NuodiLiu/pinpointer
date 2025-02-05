@@ -419,27 +419,27 @@ const Home: React.FC = () => {
           areCoordinatesClose(updatedPoints[index].latitude, r.lat) &&
           areCoordinatesClose(updatedPoints[index].longitude, r.lng)
         ) {
-          index++; // 当前位置匹配 pinnedPoints，跳过到下一个
+          index++;
         } else {
-          // 创建新点
+          // create new point
           const newPoint: PinnedPoint = {
             id: uuidv4(),
             name: `Auto-Added-${index}`,
             latitude: normalizeCoordinate(r.lat),
             longitude: normalizeCoordinate(r.lng),
-            height: 0, // 这里可以自行设置默认高度
+            height: 0, // TODO can set default height here
           };
 
-          // 插入到 updatedPoints 中
+          // insert into updatedPoints 
           updatedPoints.splice(index, 0, newPoint);
-          newPoints.push(newPoint); // 记录新点
-          index++; // 继续处理下一个
+          newPoints.push(newPoint); // record new point
+          index++; // continue next
         }
       }
     
       setPinnedPoints(updatedPoints);
 
-      // 如果有新点，更新 groups，将它们加入 `DEFAULT_GROUP`
+      // if has new points, update groups，then add to `DEFAULT_GROUP`
       if (newPoints.length > 0) {
         setGroups((prevGroups) =>
           prevGroups.map((group) =>

@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from 'next/navigation';  // 添加这行导入
+import { useRouter } from 'next/navigation';
 
 interface PointsOperationBarProps {
   isEditingFileName: boolean;

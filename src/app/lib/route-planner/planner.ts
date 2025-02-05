@@ -6,25 +6,25 @@ import Zone from "@/app/types/Zone";
 import { normalizeCoordinate } from "../normalizePoints";
 
 /**
- * 根据“已知顺序”的必经点，依次调用A*搜索并拼接路径
+ * Calls A* search sequentially for "ordered" mandatory points and stitches the paths together
  */
 export async function planRouteWithOrderedPoints(
   pinnedPoints: PinnedPoint[],
   zones: Zone[],
   preferredZones: Zone[]
 ): Promise<{ lat: number; lng: number }[] | null> {
-  // 1) 构建 costGrid (含禁区 / 偏好区)
+  // 1)  Build the costGrid (including restricted zones / preferred zones)
   const costGrid = buildCostGrid(zones, preferredZones, 1);
 
   const n = pinnedPoints.length;
   if (n < 2) {
-    // 如果只有一个点或0点，就没有路线可言，按需求自行处理
+    // If there is only one or zero points, there is no route to plan; handle accordingly
     return [];
   }
 
   let finalPath: { lat: number; lng: number }[] = [];
 
-  // 2) 依次搜索：PinnedPoints[i] -> PinnedPoints[i+1]
+  // 2) Search sequentially: PinnedPoints[i] -> PinnedPoints[i+1]
   for (let i = 0; i < n - 1; i++) {
     const startRC = transformLatLngToRowCol(
       pinnedPoints[i].latitude,
@@ -37,11 +37,11 @@ export async function planRouteWithOrderedPoints(
 
     const partial = aStarSearch(costGrid, startRC, endRC);
     if (!partial) {
-      // 不可达则返回 null
+      // If unreachable, return null
       return null;
     }
 
-    // 将网格路径转为地理坐标
+    // Convert grid path to geographic coordinates
     const partialGeo = partial.map((node) => {
       const { lat, lng } = transformRowColToLatLng(node.row, node.col);
       return { 
@@ -50,12 +50,12 @@ export async function planRouteWithOrderedPoints(
       };
     });    
 
-    // 3) 拼接到 finalPath
+    // 3) Append to finalPath
     if (i === 0) {
-      // 第一段，直接赋值
+      // First segment, assign directly
       finalPath = partialGeo;
     } else {
-      // 后面的段要去掉前一段的最后一个点，避免重复
+      // Subsequent segments need to remove the last point of the previous segment to avoid duplication
       finalPath.pop();
       finalPath.push(...partialGeo);
     }

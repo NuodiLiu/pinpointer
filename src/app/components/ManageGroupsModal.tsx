@@ -51,8 +51,8 @@ export default function ManageGroupsModal({
   const sensors = useSensors(useSensor(PointerSensor));
 
   /**
-   * 1. 把 "ungrouped" 里的 pinnedPoints 当作顶层的 point 项
-   * 2. 把 其它 group 当作 group 项
+   * 1. treat pinnedPoints in "ungrouped" as top layer point item
+   * 2. treat group as group item
    */
   const ungrouped = groups.find((g) => g.id === DEFAULT_GROUP_ID);
   if (!ungrouped) {
@@ -86,17 +86,16 @@ export default function ManageGroupsModal({
     const sourceGroup = findParentGroup(draggedPointId);
     if (!sourceGroup) return;
 
-    // ========== 1) 如果没有拖到任何 droppable，或拖到自身, 就移到 ungrouped ==========
+    // ========== 1) not dragging to any droppable or itself, the move to ungrouped ==========
     if (!over || active.id === over.id) {
       movePointToUngrouped(draggedPointId, sourceGroup.id);
       return;
     }
 
-    // ========== 2) 如果拖拽到其它 item 上，解析对方 ==========
+    // ========== 2) drag item to other item 上，analize this item ==========
     const overItem = parseDragId(over.id as string);
     if (!overItem) return;
 
-    // 2.1) point => point（都在 “顶层”） => 创建新 group
     if (
       overItem.kind === "point" &&
       sourceGroup.id === DEFAULT_GROUP_ID &&
@@ -112,7 +111,6 @@ export default function ManageGroupsModal({
       return;
     }
 
-    // 2.3) point => group 中的某个 point => 移到该 group
     if (overItem.kind === "point") {
       const parent = findParentGroup(overItem.pointId);
       if (parent) {
@@ -121,32 +119,32 @@ export default function ManageGroupsModal({
     }
   }
 
-  // =========== “移动 point 到 ungrouped” ===========
+  // =========== “move point into ungrouped” ===========
   function movePointToUngrouped(pointId: string, fromGroupId: string) {
     const p = getPointById(pointId);
     if (!p) return;
 
     setGroups((prev) => {
-      // 1) 先从 sourceGroup 移除
+      // 1) rm from sourceGroup
       let next = removePoint(prev, fromGroupId, pointId);
 
-      // 2) 再把 p 加到 ungrouped
+      // 2) put p into ungrouped
       next = addPoint(next, DEFAULT_GROUP_ID, p);
 
-      // 3) 最后检查是否要解散 fromGroup
+      // 3) check fi should remove from fromGroup
       next = disbandIfNeeded(next, fromGroupId);
 
       return next;
     });
   }
 
-  // =========== 创建新 group，把两个 ungrouped point 移过去 ===========
+  // =========== create new group， move two ungrouped point into it ===========
   function createNewGroupFromPoints(pointAId: string, pointBId: string) {
     const pA = getPointById(pointAId);
     const pB = getPointById(pointBId);
     if (!pA || !pB) return;
 
-    // 生成类似 "Group 1", "Group 2"...
+    // generate smth like "Group 1", "Group 2"...
     setGroupCount((old) => old + 1);
     const newIndex = groupCount + 1;
     const newGroupId = `group-${newIndex}`;
@@ -162,17 +160,17 @@ export default function ManageGroupsModal({
     };
 
     setGroups((prev) => {
-      // 1) 移除 pA, pB from ungrouped
+      // 1) rm pA, pB from ungrouped
       let next = removePoint(prev, DEFAULT_GROUP_ID, pointAId);
       next = removePoint(next, DEFAULT_GROUP_ID, pointBId);
 
-      // 2) 插入新组
+      // 2) insert new group
       next = [newGroup, ...next];
       return next;
     });
   }
 
-  // =========== 在两个 group 之间移动 point ===========
+  // =========== move point between two groups ===========
   function movePointBetweenGroups(
     pointId: string,
     fromGroupId: string,
@@ -183,21 +181,21 @@ export default function ManageGroupsModal({
     if (!p) return;
 
     setGroups((prev) => {
-      // 1) 先从 sourceGroup 中删除
+      // 1) remove from sourceGroup
       let next = removePoint(prev, fromGroupId, pointId);
 
-      // 2) 放进 toGroupId
+      // 2) put toGroupId
       next = addPoint(next, toGroupId, p);
 
-      // 3) 检查 sourceGroup 是否要解散
+      // 3) check sourceGroup should be removed or not
       next = disbandIfNeeded(next, fromGroupId);
 
       return next;
     });
   }
 
-  // =========== 当某个 group pinnedPoints < 2 时，解散它 ===========
-  // (但不解散 ungrouped)
+  // =========== when group pinnedPoints < 2，delete ===========
+  // (not deleting ungrouped)
   function disbandIfNeeded(groupsData: Group[], groupId: string): Group[] {
     if (groupId === DEFAULT_GROUP_ID) return groupsData;
   
@@ -220,7 +218,7 @@ export default function ManageGroupsModal({
   }
   
 
-  // =========== “将 point p 加进 groupId” 的小工具函数 ===========
+  // =========== “put point p into groupId” ===========
   function addPoint(groupsData: Group[], groupId: string, point: PinnedPoint) {
     return groupsData.map((g) => {
       if (g.id === groupId) {
@@ -233,7 +231,7 @@ export default function ManageGroupsModal({
     });
   }
 
-  // =========== “从 groupId 移除 pointId” 的小工具函数 ===========
+  // =========== “from groupId delete pointId” ===========
   function removePoint(groupsData: Group[], groupId: string, pointId: string) {
     return groupsData.map((g) => {
       if (g.id === groupId) {
@@ -246,7 +244,7 @@ export default function ManageGroupsModal({
     });
   }
 
-  // =========== 点击“眼睛”图标，切换 group 的 isVisible ===========
+  // =========== click "eye" button to switch group's isVisible ===========
   function toggleGroupVisibility(groupId: string) {
     setGroups((prev) =>
       prev.map((g) =>
@@ -262,7 +260,7 @@ export default function ManageGroupsModal({
     }));
   }
 
-  // 🆕 重命名 group
+  // rename group
   function handleRenameGroup(groupId: string, newName: string) {
     setGroups((prev) =>
       prev.map((g) => {
@@ -274,7 +272,7 @@ export default function ManageGroupsModal({
     );
   }
 
-  // =========== 工具函数 ===========
+  // =========== Tool Functions ===========
   function parseDragId(dragId: string): DragItem | null {
     if (dragId.startsWith("point-")) {
       return { kind: "point", pointId: dragId.replace("point-", "") };
@@ -493,7 +491,7 @@ function SortableItem({
   return null;
 }
 
-// ========== group 中 point 的单独渲染 ==========
+// ========== group's point render individually ==========
 function GroupPoint({ point }: { point: PinnedPoint }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: `point-${point.id}`,

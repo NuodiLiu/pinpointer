@@ -5,20 +5,20 @@ import { IncomingForm, File } from "formidable";
 import type { IncomingMessage } from "http";
 import { Readable } from "stream";
 
-// 确保 `saved_routes` 目录存在
+// make sure `saved_routes` folder exists
 const SAVE_DIRECTORY = path.join(process.cwd(), "saved_routes");
 if (!fs.existsSync(SAVE_DIRECTORY)) {
   fs.mkdirSync(SAVE_DIRECTORY, { recursive: true });
 }
 
-// 关闭默认的 body 解析（适用于文件上传）
+// Disable default body parsing (needed for file upload)
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// 转换 NextRequest 为 IncomingMessage（因为 formidable 需要）
+// change NextRequest to IncomingMessage（for formidable）
 async function convertToIncomingMessage(req: NextRequest): Promise<IncomingMessage> {
   const requestBuffer = await req.arrayBuffer();
   const readableStream = new Readable();
@@ -26,9 +26,8 @@ async function convertToIncomingMessage(req: NextRequest): Promise<IncomingMessa
   readableStream.push(Buffer.from(requestBuffer));
   readableStream.push(null);
 
-  // 关键点：确保第二次上传时，不会因为流未关闭而阻塞
-  readableStream.on("error", (err) => console.error("❌ ReadableStream 错误:", err));
-  readableStream.on("close", () => console.log("✅ ReadableStream 关闭"));
+  readableStream.on("error", (err) => console.error("❌ ReadableStream error:", err));
+  readableStream.on("close", () => console.log("✅ ReadableStream closed"));
 
   return Object.assign(readableStream, {
     headers: Object.fromEntries(req.headers),
@@ -37,7 +36,7 @@ async function convertToIncomingMessage(req: NextRequest): Promise<IncomingMessa
   }) as IncomingMessage;
 }
 
-// 生成唯一文件名
+// Generate a unique filename
 function getUniqueFilename(directory: string, filename: string): string {
   let finalFilePath = path.join(directory, filename);
   const ext = path.extname(filename);
@@ -52,7 +51,7 @@ function getUniqueFilename(directory: string, filename: string): string {
   return finalFilePath;
 }
 
-// 处理文件上传
+// Handle file upload
 export async function POST(req: NextRequest) {
   try {
     const incomingRequest = await convertToIncomingMessage(req);
@@ -62,25 +61,25 @@ export async function POST(req: NextRequest) {
         uploadDir: SAVE_DIRECTORY,
         keepExtensions: true,
         maxFileSize: 10 * 1024 * 1024, // 10MB
-        multiples: false, // 确保只上传一个文件
+        multiples: false,
       });
 
       form.parse(incomingRequest, (err, fields, files) => {
         if (err) {
-          console.error("❌ 解析上传文件失败:", err);
-          incomingRequest.resume(); // ✅ 继续消费剩余数据，防止阻塞
+          console.error("❌ Failed to parse uploaded file:", err);
+          incomingRequest.resume(); //✅ Continue consuming remaining data to prevent blocking
           return resolve(
-            NextResponse.json({ message: "文件上传失败", error: err.message }, { status: 400 })
+            NextResponse.json({ message: "Failed to upload", error: err.message }, { status: 400 })
           );
         }
       
-        console.log("📂 文件解析成功:", files);
-        incomingRequest.resume(); // ✅ 确保数据被完全读取
+        console.log("📂 File parsed successfully:", files);
+        incomingRequest.resume(); // ✅ Ensure data is fully read
         const uploadedFileArray = files.file as File[] | undefined;
         if (!uploadedFileArray || uploadedFileArray.length === 0) {
-          incomingRequest.destroy(); // ✅ 确保流被销毁
+          incomingRequest.destroy(); // ✅ Ensure stream is destroyed
           return resolve(
-            NextResponse.json({ message: "无效的文件上传" }, { status: 400 })
+            NextResponse.json({ message: "Invalid file upload" }, { status: 400 })
           );
         }
       
@@ -90,25 +89,25 @@ export async function POST(req: NextRequest) {
       
         fs.rename(uploadedFile.filepath, finalFilePath, (renameError) => {
           if (renameError) {
-            console.error("❌ 保存文件失败:", renameError);
-            incomingRequest.destroy(); // ✅ 确保流被释放
+            console.error("❌ Failed to save file:", renameError);
+            incomingRequest.destroy(); // ✅ Ensure stream is released
             return resolve(
-              NextResponse.json({ message: "保存文件失败" }, { status: 500 })
+              NextResponse.json({ message: "File uploaded successfully" }, { status: 500 })
             );
           }
       
-          console.log(`✅ 文件上传成功: ${finalFilePath}`);
-          incomingRequest.destroy(); // ✅ 解析完成后销毁流
+          console.log(`✅ File uploaded successfully: ${finalFilePath}`);
+          incomingRequest.destroy();
       
           resolve(
-            NextResponse.json({ message: "文件上传成功", filePath: finalFilePath })
+            NextResponse.json({ message: "File uploaded successfully", filePath: finalFilePath })
           );
         });
       });
       
     });
   } catch (error) {
-    console.error("❌ 服务器错误:", error);
-    return NextResponse.json({ message: "服务器错误", error }, { status: 500 });
+    console.error("❌ Server Error:", error);
+    return NextResponse.json({ message: "Server Error", error }, { status: 500 });
   }
 }
