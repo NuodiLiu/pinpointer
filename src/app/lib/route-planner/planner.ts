@@ -4,6 +4,7 @@ import { buildCostGrid } from "./gridBuilder";
 import { transformLatLngToRowCol, transformRowColToLatLng } from "./util";
 import Zone from "@/app/types/Zone";
 import { normalizeCoordinate } from "../normalizePoints";
+import useStepSizeStore from "@/app/store/useStepSizeStore";
 
 /**
  * Calls A* search sequentially for "ordered" mandatory points and stitches the paths together
@@ -11,10 +12,13 @@ import { normalizeCoordinate } from "../normalizePoints";
 export async function planRouteWithOrderedPoints(
   pinnedPoints: PinnedPoint[],
   zones: Zone[],
-  preferredZones: Zone[]
+  preferredZones: Zone[],
+  STEP_SIZE: number
 ): Promise<{ lat: number; lng: number }[] | null> {
+  console.log(STEP_SIZE);
+
   // 1)  Build the costGrid (including restricted zones / preferred zones)
-  const costGrid = buildCostGrid(zones, preferredZones, 1);
+  const costGrid = buildCostGrid(zones, preferredZones, 1, STEP_SIZE);
 
   const n = pinnedPoints.length;
   if (n < 2) {
@@ -28,14 +32,16 @@ export async function planRouteWithOrderedPoints(
   for (let i = 0; i < n - 1; i++) {
     const startRC = transformLatLngToRowCol(
       pinnedPoints[i].latitude,
-      pinnedPoints[i].longitude
+      pinnedPoints[i].longitude,
+      STEP_SIZE
     );
     const endRC = transformLatLngToRowCol(
       pinnedPoints[i + 1].latitude,
-      pinnedPoints[i + 1].longitude
+      pinnedPoints[i + 1].longitude,
+      STEP_SIZE
     );
 
-    const partial = aStarSearch(costGrid, startRC, endRC);
+    const partial = aStarSearch(costGrid, startRC, endRC, STEP_SIZE);
     if (!partial) {
       // If unreachable, return null
       return null;
@@ -43,7 +49,7 @@ export async function planRouteWithOrderedPoints(
 
     // Convert grid path to geographic coordinates
     const partialGeo = partial.map((node) => {
-      const { lat, lng } = transformRowColToLatLng(node.row, node.col);
+      const { lat, lng } = transformRowColToLatLng(node.row, node.col, STEP_SIZE);
       return { 
         lat: normalizeCoordinate(lat), 
         lng: normalizeCoordinate(lng)

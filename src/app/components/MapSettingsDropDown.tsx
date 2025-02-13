@@ -4,11 +4,16 @@ import React, { useState, useRef, useEffect } from "react";
 import { IoIosArrowDown, IoIosCheckmark } from "react-icons/io";
 import clsx from "clsx";
 import { arrowColors, MapPinIconType, mapPinIconUrls, MapSettings } from "../types/MapSetting";
+import useStepSizeStore from "../store/useStepSizeStore";
 
 interface SettingsDropdownProps {
   changePinIconType: (type: MapPinIconType) => void;
   changeArrowColor: (color: string) => void;
 }
+
+const RANGE_MIN = 0.005;
+const RANGE_MAX = 0.03;
+const CONVERT_FACTOR = 100000;
 
 /**
  * A reusable, accessible dropdown for selecting Icon Type and Arrow Color.
@@ -20,6 +25,9 @@ export default function SettingsDropdown({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [localMapSettings, setLocalMapSettings] = useState<MapSettings>({pinIconType: "default", arrowColor: "#FF0000"})
+  const { stepSize, setStepSize } = useStepSizeStore();
+  // middle state
+  const [inputValue, setInputValue] = useState("1100");
 
   // Close dropdown if user clicks outside
   useEffect(() => {
@@ -47,6 +55,32 @@ export default function SettingsDropdown({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // limit boundary
+  function clampStepSize(value: number) {
+    if (value < 0.005) return 0.005;
+    if (value > 0.03) return 0.03;
+    return value;
+  }
+
+  const handleConfirm = () => {
+    if (!inputValue) {
+      setStepSize(RANGE_MIN);
+      setInputValue((RANGE_MIN * CONVERT_FACTOR).toString());
+      return;
+    }
+    const parsed = parseFloat(inputValue);
+    if (isNaN(parsed)) {
+      setStepSize(RANGE_MIN);
+      setInputValue((RANGE_MIN * CONVERT_FACTOR).toString());
+      return;
+    }
+    // clamp
+    const realStepSize = parsed / CONVERT_FACTOR;
+    const clamped = clampStepSize(realStepSize);
+    setStepSize(clamped);
+    setInputValue((clamped * CONVERT_FACTOR).toString());
+  };
+
   return (
     <div className="relative inline-block" ref={dropdownRef}>
       {/* Trigger Button */}
@@ -68,7 +102,7 @@ export default function SettingsDropdown({
       {/* Dropdown */}
       {dropdownOpen && (
         <div
-          className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-lg p-3 z-50"
+          className="absolute right-0 mt-2 w-58 bg-white border border-gray-200 rounded shadow-lg p-3 z-50"
           role="menu"
         >
           {/* Optional caret (triangle) at the top */}
@@ -82,7 +116,6 @@ export default function SettingsDropdown({
             <ul className="space-y-1" role="menu">
               {Object.keys(mapPinIconUrls).map((type) => {
                 const isActive = type === localMapSettings.pinIconType;
-                console.log(`${type}: ${isActive}`);
                 return (
                   <li
                     key={type}
@@ -157,6 +190,67 @@ export default function SettingsDropdown({
                   </div>
                 );
               })}
+            </div>
+          </section>
+
+          <hr className="my-2" />
+
+          {/* Step Size Section */}
+          <section aria-labelledby="step-size-label" className="mt-3">
+            <p
+              id="step-size-label"
+              className="text-sm text-gray-700 font-medium mb-1"
+            >
+              Step Size:
+            </p>
+            <div className="flex items-center space-x-2">
+              {/* slider input */}
+              <input
+                type="range"
+                min={RANGE_MIN}
+                max={RANGE_MAX}
+                step="0.001"
+                value={stepSize}
+                onChange={(e) => {
+                  const rawValue = parseFloat(e.target.value);
+                  setStepSize(clampStepSize(rawValue));
+                  setInputValue(Math.round((clampStepSize(rawValue) * CONVERT_FACTOR)).toString());
+                }}
+              />
+
+              {/* number input frame */}
+              <div className="flex items-center border border-gray-300 rounded px-2 py-1 w-20">
+                <input
+                  type="number"
+                  className="
+                    flex-grow
+                    w-full
+                    text-sm
+                    text-black
+                    appearance-none
+                    focus:outline-none
+                    [&::-webkit-outer-spin-button]:appearance-none
+                    [&::-webkit-inner-spin-button]:appearance-none
+                    [MozAppearance:textfield]
+                    text-right
+                  "
+                  min={RANGE_MIN * 1000}
+                  max={RANGE_MAX * 1000}
+                  step="1"
+                  value={inputValue}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                  }}
+                  onBlur={handleConfirm}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleConfirm();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                />
+                <span className="ml-1 text-gray-500 text-sm">m</span>
+              </div>
             </div>
           </section>
         </div>

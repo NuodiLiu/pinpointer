@@ -5,16 +5,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { pinnedPoints, zones, preferredZones } = await request.json() as {
+    const { pinnedPoints, zones, preferredZones, STEP_SIZE } = await request.json() as {
       pinnedPoints: PinnedPoint[];
       zones: Zone[];
       preferredZones: Zone[];
+      STEP_SIZE: number;
     };
 
     const route = await planRouteWithOrderedPoints(
       pinnedPoints,
       zones,
-      preferredZones
+      preferredZones,
+      STEP_SIZE
     );
 
     if (!route) {

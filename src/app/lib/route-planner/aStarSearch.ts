@@ -17,13 +17,14 @@ interface AStarNode {
 export function aStarSearch(
   grid: Grid,
   start: { row: number; col: number },
-  end: { row: number; col: number }
+  end: { row: number; col: number },
+  STEP_SIZE: number
 ): AStarNode[] | null {
-  console.log('=== A* START ===');
-  console.log('Start:', start, 'End:', end);
-  console.log("Grid size:", grid.length, grid[0].length);
+  // console.log('=== A* START ===');
+  // console.log('Start:', start, 'End:', end);
+  // console.log("Grid size:", grid.length, grid[0].length);
 
-  if (!isValidGridCoordinate(start.row, start.col) || !isValidGridCoordinate(end.row, end.col)) {
+  if (!isValidGridCoordinate(start.row, start.col, STEP_SIZE) || !isValidGridCoordinate(end.row, end.col, STEP_SIZE)) {
     return null;
   }
 
@@ -48,14 +49,14 @@ export function aStarSearch(
   while (!openList.empty()) {
     // Extract the node with the smallest f value from the openList
     const current = openList.pop()!;
-    console.log('Pop from openList:', `(${current.row}, ${current.col})`, 
-                `g=${current.g.toFixed(2)} h=${current.h.toFixed(2)} f=${current.f.toFixed(2)}`);
+    // console.log('Pop from openList:', `(${current.row}, ${current.col})`, 
+    //            `g=${current.g.toFixed(2)} h=${current.h.toFixed(2)} f=${current.f.toFixed(2)}`);
 
     // Check if the end point is reached
     if (current.row === end.row && current.col === end.col) {
-      console.log('Reached END, reconstruct path...');
+      // console.log('Reached END, reconstruct path...');
       const path = reconstructPath(current);
-      console.log('Path found:', path);
+      // console.log('Path found:', path);
       return path;
     }
 
@@ -64,7 +65,7 @@ export function aStarSearch(
 
     // Get neighbors
     const neighbors = getNeighbors(grid, current);
-    console.log(`Neighbors of (${current.row}, ${current.col}):`, neighbors);
+    // console.log(`Neighbors of (${current.row}, ${current.col}):`, neighbors);
 
     for (const neighbor of neighbors) {
       const key = getKey(neighbor.row, neighbor.col);
@@ -98,11 +99,11 @@ export function aStarSearch(
 
         nodeMap.set(key, node);
         openList.push(node);
-        console.log(`  push neighbor (${node.row}, ${node.col}) g=${node.g.toFixed(2)}, h=${node.h.toFixed(2)}, f=${node.f.toFixed(2)}`);
+        // console.log(`  push neighbor (${node.row}, ${node.col}) g=${node.g.toFixed(2)}, h=${node.h.toFixed(2)}, f=${node.f.toFixed(2)}`);
       } else {
         // If the node already exists but this path is better, update it
         if (newG < exist.g) {
-          console.log(`  found better path for (${exist.row}, ${exist.col}): old g=${exist.g.toFixed(2)}, new g=${newG.toFixed(2)}`);
+          // console.log(`  found better path for (${exist.row}, ${exist.col}): old g=${exist.g.toFixed(2)}, new g=${newG.toFixed(2)}`);
           exist.g = newG;
           exist.parent = current;
           exist.f = exist.g + exist.h;
@@ -113,7 +114,7 @@ export function aStarSearch(
     }
   }
 
-  console.log('No path found, return null.');
+  // console.log('No path found, return null.');
   return null;
 }
 

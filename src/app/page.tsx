@@ -18,6 +18,7 @@ import { areCoordinatesClose } from "./lib/route-planner/util";
 import { MapPinIconType, MapSettings } from "./types/MapSetting";
 import NavigationBar from "./components/NavigationBar";
 import { preferredZones } from "./lib/route-planner/preferredZones";
+import useStepSizeStore from "./store/useStepSizeStore";
 
 const MapSection = dynamic(
   () => 
@@ -403,6 +404,8 @@ const Home: React.FC = () => {
   };
 
   const planRoute = async () => {
+    const STEP_SIZE = useStepSizeStore.getState().stepSize;
+    
     const processRoute = (route: { lat: number; lng: number }[] | null) => {
       if (!route || route.length === 0) {
         console.log("Route is empty or null, no new points are created");
@@ -416,8 +419,8 @@ const Home: React.FC = () => {
       for (const r of route) {
         if (
           index < updatedPoints.length && 
-          areCoordinatesClose(updatedPoints[index].latitude, r.lat) &&
-          areCoordinatesClose(updatedPoints[index].longitude, r.lng)
+          areCoordinatesClose(updatedPoints[index].latitude, r.lat, STEP_SIZE) &&
+          areCoordinatesClose(updatedPoints[index].longitude, r.lng, STEP_SIZE)
         ) {
           index++;
         } else {
@@ -462,6 +465,7 @@ const Home: React.FC = () => {
           pinnedPoints,
           zones,
           preferredZones,
+          STEP_SIZE,
         }),
       });
   
@@ -538,7 +542,9 @@ const Home: React.FC = () => {
               />
               <div className="flex-[10] overflow-y-auto min-h-0 bg-gray-50 p-4">
                 {pinnedPoints.length === 0 ? (
-                  <p>No points pinned yet.</p>
+                  <div className="flex items-center justify-center w-full h-full">
+                    <p className="text-gray-600">Click on map to drop a pin.</p>
+                  </div>
                 ) : (
                   <PinnedPointsList
                     points={pinnedPoints}

@@ -1,5 +1,5 @@
 import * as turf from "@turf/turf";
-import { gridHeight, gridWidth, transformRowColToLatLng } from "./util";
+import { EAST_BOUNDARY, NORTH_BOUNDARY, SOUTH_BOUNDARY, transformRowColToLatLng, WEST_BOUNDARY } from "./util";
 import Zone from "@/app/types/Zone";
 import PinnedPoint from "@/app/types/PinnedPoint";
 import { Grid, GridCell } from "@/app/types/GridCell";
@@ -9,9 +9,12 @@ export function buildCostGrid(
   // gridWidth: number,
   zones: Zone[],
   preferredAreas: Zone[],
-  baseCost: number = 1
+  baseCost: number = 1,
+  STEP_SIZE: number
 ): Grid {
   const grid: Grid = [];
+  const gridHeight = Math.ceil((NORTH_BOUNDARY - SOUTH_BOUNDARY) / STEP_SIZE);
+  const gridWidth  = Math.ceil((EAST_BOUNDARY - WEST_BOUNDARY) / STEP_SIZE);
 
   for (let r = 0; r < gridHeight; r++) {
     const rowCells: GridCell[] = [];
@@ -22,11 +25,11 @@ export function buildCostGrid(
         cost: baseCost,
       };
 
-      if (isInAnyZone(r, c, zones)) {
+      if (isInAnyZone(r, c, zones, STEP_SIZE)) {
         cell.cost = Infinity;
       }
 
-      if (isInAnyZone(r, c, preferredAreas)) {
+      if (isInAnyZone(r, c, preferredAreas, STEP_SIZE)) {
         cell.cost *= 0.5;
       }
 
@@ -53,8 +56,8 @@ export function pinnedPointsToGeoJsonPolygon(points: PinnedPoint[]) {
 }
 
 
-export function isInAnyZone(row: number, col: number, zones: Zone[]): boolean {
-  const { lat, lng } = transformRowColToLatLng(row, col);
+export function isInAnyZone(row: number, col: number, zones: Zone[], STEP_SIZE: number): boolean {
+  const { lat, lng } = transformRowColToLatLng(row, col, STEP_SIZE);
 
   const point = turf.point([lng, lat]);
 
